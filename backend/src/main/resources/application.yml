@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: ai-passage-creator
+  profiles:
+    active: dev
+server:
+  port: 9090
+  servlet:
+    context-path: /api
