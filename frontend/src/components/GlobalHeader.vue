@@ -71,7 +71,12 @@ const originItems = [
         label: '主页',
         title: '主页',
     },
-]
+    {
+        key: '/admin/userManager',
+        label: '用户管理',
+        title: '用户管理',
+    },
+]   
 
 // 过滤菜单项
 const filterMenus = (menus = [] as MenuProps['items']) => {

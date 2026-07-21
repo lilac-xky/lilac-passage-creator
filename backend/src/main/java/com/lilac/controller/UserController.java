@@ -1,21 +1,25 @@
 package com.lilac.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.lilac.annotation.AuthCheck;
 import com.lilac.common.DeleteRequest;
 import com.lilac.constant.UserConstant;
-import com.lilac.domain.dto.user.UserAddRequest;
-import com.lilac.domain.dto.user.UserLoginRequest;
-import com.lilac.domain.dto.user.UserRegisterRequest;
+import com.lilac.domain.dto.user.*;
 import com.lilac.domain.entity.User;
 import com.lilac.domain.result.Result;
 import com.lilac.domain.vo.LoginUserVO;
 import com.lilac.enums.HttpsCodeEnum;
 import com.lilac.service.UserService;
 import com.lilac.utils.ThrowUtils;
+import com.mybatisflex.core.paginate.Page;
+import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用户接口
@@ -80,7 +84,7 @@ public class UserController {
         ThrowUtils.throwIf(userAddRequest == null, HttpsCodeEnum.PARAMS_ERROR);
         User user = new User();
         BeanUtil.copyProperties(userAddRequest, user);
-        String defaultPassword = "12345678";
+        String defaultPassword = "123456";
         user.setUserPassword(userService.getEncryptPassword(defaultPassword));
         boolean result = userService.save(user);
         ThrowUtils.throwIf(!result, HttpsCodeEnum.OPERATION_ERROR);
@@ -98,5 +102,61 @@ public class UserController {
         boolean result = userService.removeById(deleteRequest.getId());
         ThrowUtils.throwIf(!result, HttpsCodeEnum.OPERATION_ERROR);
         return Result.success(true);
+    }
+
+    /**
+     * 分页查询用户列表（仅管理员）
+     *
+     * @param queryRequest 查询请求
+     * @return 用户分页
+     */
+    @PostMapping("/list/page")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public Result<Page<LoginUserVO>> listUserVoByPage(@RequestBody UserQueryRequest queryRequest) {
+        ThrowUtils.throwIf(queryRequest == null, HttpsCodeEnum.PARAMS_ERROR);
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        if (queryRequest.getId() != null) {
+            queryWrapper.eq("id", queryRequest.getId());
+        }
+        if (StrUtil.isNotBlank(queryRequest.getUserAccount())) {
+            queryWrapper.like("userAccount", queryRequest.getUserAccount());
+        }
+        if (StrUtil.isNotBlank(queryRequest.getUserName())) {
+            queryWrapper.like("userName", queryRequest.getUserName());
+        }
+        if (StrUtil.isNotBlank(queryRequest.getUserProfile())) {
+            queryWrapper.like("userProfile", queryRequest.getUserProfile());
+        }
+        queryWrapper.orderBy("createTime", false);
+
+        Page<User> userPage = userService.page(Page.of(queryRequest.getCurrent(), queryRequest.getPageSize()), queryWrapper);
+        Page<LoginUserVO> voPage = new Page<>(userPage.getPageNumber(), userPage.getPageSize(), userPage.getTotalRow());
+        List<LoginUserVO> voList = userPage.getRecords().stream()
+                .map(userService::getLoginUserVO)
+                .collect(Collectors.toList());
+        voPage.setRecords(voList);
+        return Result.success(voPage);
+    }
+
+    /**
+     * 更新用户（仅管理员）
+     *
+     * @param updateRequest 更新请求
+     * @return 是否成功
+     */
+    @PostMapping("/update")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public Result<Boolean> updateUser(@RequestBody UserUpdateRequest updateRequest) {
+        ThrowUtils.throwIf(updateRequest == null || updateRequest.getId() == null, HttpsCodeEnum.PARAMS_ERROR);
+        User user = userService.getById(updateRequest.getId());
+        ThrowUtils.throwIf(user == null, HttpsCodeEnum.NOT_FOUND_ERROR, "用户不存在");
+        user.setUserName(updateRequest.getUserName());
+        user.setUserAvatar(updateRequest.getUserAvatar());
+        user.setUserProfile(updateRequest.getUserProfile());
+        if (StrUtil.isNotBlank(updateRequest.getUserRole())) {
+            user.setUserRole(updateRequest.getUserRole());
+        }
+        boolean updated = userService.updateById(user);
+        return Result.success(updated);
     }
 }

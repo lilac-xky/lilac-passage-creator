@@ -22,9 +22,9 @@ const router = createRouter({
       component: UserRegister,
     },
     {
-      path: '/admin/userManage',
+      path: '/admin/userManager',
       name: '用户管理',
-      component: () => import('@/views/admin/UserManage.vue'),
+      component: () => import('@/views/admin/UserManager.vue'),
       meta: {
         requiresAuth: true,
         requiresAdmin: true,

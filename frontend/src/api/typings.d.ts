@@ -23,6 +23,16 @@ declare namespace API {
     updateTime?: string;
   };
 
+  type PageLoginUserVO = {
+    records?: LoginUserVO[];
+    pageNumber?: number;
+    pageSize?: number;
+    maxPageSize?: number;
+    totalPage?: number;
+    totalRow?: number;
+    optimizeCountQuery?: boolean;
+  };
+
   type ResultBoolean = {
     code?: number;
     msg?: string;
@@ -41,6 +51,12 @@ declare namespace API {
     data?: number;
   };
 
+  type ResultPageLoginUserVO = {
+    code?: number;
+    msg?: string;
+    data?: PageLoginUserVO;
+  };
+
   type UserAddRequest = {
     userAccount?: string;
     userName?: string;
@@ -56,6 +72,25 @@ declare namespace API {
     userPassword?: string;
   };
 
+  type UserQueryRequest = {
+    /** 当前页 */
+    current?: number;
+    /** 页面大小 */
+    pageSize?: number;
+    /** 排序字段 */
+    sortField?: string;
+    /** 排序顺序（默认：升序） */
+    sortOrder?: string;
+    /** id */
+    id?: number;
+    /** 账号 */
+    userAccount?: string;
+    /** 用户昵称 */
+    userName?: string;
+    /** 用户简介 */
+    userProfile?: string;
+  };
+
   type UserRegisterRequest = {
     /** 账号 */
     userAccount?: string;
@@ -63,5 +98,20 @@ declare namespace API {
     userPassword?: string;
     /** 校验密码 */
     checkPassword?: string;
+  };
+
+  type UserUpdateRequest = {
+    /** id */
+    id?: number;
+    /** 账号 */
+    userAccount?: string;
+    /** 用户昵称 */
+    userName?: string;
+    /** 用户头像 */
+    userAvatar?: string;
+    /** 用户简介 */
+    userProfile?: string;
+    /** 用户角色：user/admin */
+    userRole?: string;
   };
 }

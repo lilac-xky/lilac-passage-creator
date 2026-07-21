@@ -40,6 +40,21 @@ export async function getLoginUser(options?: { [key: string]: any }) {
   });
 }
 
+/** 分页查询用户列表（仅管理员） POST /api/user/list/page */
+export async function listUserVoByPage(
+  body: API.UserQueryRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.ResultPageLoginUserVO>("/api/user/list/page", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 /** 用户登录 POST /api/user/login */
 export async function userLogin(
   body: API.UserLoginRequest,
@@ -69,6 +84,21 @@ export async function userRegister(
   options?: { [key: string]: any }
 ) {
   return request<API.ResultLong>("/api/user/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 更新用户（仅管理员） POST /api/user/update */
+export async function updateUser(
+  body: API.UserUpdateRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.ResultBoolean>("/api/user/update", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
