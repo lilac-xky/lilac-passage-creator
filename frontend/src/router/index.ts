@@ -30,6 +30,21 @@ const router = createRouter({
         requiresAdmin: true,
       },
     },
+    {
+      path: '/create',
+      name: '创作文章',
+      component: () => import('@/views/article/ArticleCreate.vue'),
+    },
+    {
+      path: '/article/list',
+      name: '文章列表',
+      component: () => import('@/views/article/ArticleList.vue'),
+    },
+    {
+      path: '/article/:taskId',
+      name: '文章详情',
+      component: () => import('@/views/article/ArticleDetail.vue'),
+    },
   ],
 })
 

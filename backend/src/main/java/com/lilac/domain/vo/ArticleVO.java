@@ -1,12 +1,17 @@
 package com.lilac.domain.vo;
 
 import com.lilac.domain.entity.Article;
+import com.lilac.domain.dto.article.ArticleState;
+import com.lilac.utils.GsonUtils;
+import com.google.gson.reflect.TypeToken;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 文章VO
@@ -50,7 +55,7 @@ public class ArticleVO implements Serializable {
     /**
      * 概要
      */
-    private String outline;
+    private List<ArticleState.OutlineSection> outline;
 
     /**
      * 内容
@@ -70,7 +75,7 @@ public class ArticleVO implements Serializable {
     /**
      * 图片
      */
-    private String images;
+    private List<ArticleState.ImageResult> images;
 
     /**
      * 状态
@@ -110,6 +115,16 @@ public class ArticleVO implements Serializable {
         }
         ArticleVO articleVO = new ArticleVO();
         BeanUtils.copyProperties(article, articleVO);
+        articleVO.setOutline(parseList(article.getOutline(), new TypeToken<List<ArticleState.OutlineSection>>() {}));
+        articleVO.setImages(parseList(article.getImages(), new TypeToken<List<ArticleState.ImageResult>>() {}));
         return articleVO;
      }
+
+    private static <T> List<T> parseList(String json, TypeToken<List<T>> typeToken) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        List<T> result = GsonUtils.fromJson(json, typeToken);
+        return result == null ? Collections.emptyList() : result;
+    }
 }

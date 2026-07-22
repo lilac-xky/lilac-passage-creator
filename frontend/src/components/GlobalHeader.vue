@@ -76,6 +76,16 @@ const originItems = [
         label: '用户管理',
         title: '用户管理',
     },
+    {
+        key: '/create',
+        label: '创作',
+        title: '创作',
+    },
+    {
+        key: '/article/list',
+        label: '文章列表',
+        title: '文章列表',
+    },
 ]   
 
 // 过滤菜单项

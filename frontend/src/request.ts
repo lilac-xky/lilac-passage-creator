@@ -3,9 +3,11 @@ import { message } from 'ant-design-vue'
 
 const isGetLoginUserRequest = (url?: string) => url?.includes('/user/get/login') ?? false
 
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:9090').replace(/\/$/, '')
+
 // 创建axios实例
 const myAxios = axios.create({
-    baseURL: 'http://localhost:9090',
+    baseURL: API_BASE_URL,
     timeout: 6000,
     withCredentials: true,  // 必须！携带 Cookie
 });

@@ -50,6 +50,8 @@ public class ArticleController {
         User loginUser = userService.getLoginUser(httpServletRequest);
         // 创建文章任务
         String taskId = articleService.createArticleTask(request.getTopic(), loginUser);
+        // 在异步任务启动前注册 Emitter，避免前端建立 SSE 连接前产生的事件丢失
+        sseEmitterManager.createEmitter(taskId);
         // 异步执行文章生成
         articleAsyncService.executeArticleGeneration(taskId, request.getTopic());
         return Result.success(taskId);

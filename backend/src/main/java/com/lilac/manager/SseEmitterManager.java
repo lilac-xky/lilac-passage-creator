@@ -30,29 +30,32 @@ public class SseEmitterManager {
      * @return SseEmitter
      */
     public SseEmitter createEmitter(String taskId) {
+        return emitterMap.computeIfAbsent(taskId, this::newEmitter);
+    }
+
+    private SseEmitter newEmitter(String taskId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         
         // 设置超时回调
         emitter.onTimeout(() -> {
             log.warn("SSE 连接超时, taskId={}", taskId);
-            emitterMap.remove(taskId);
+            emitterMap.remove(taskId, emitter);
         });
         
         // 设置完成回调
         emitter.onCompletion(() -> {
             log.info("SSE 连接完成, taskId={}", taskId);
-            emitterMap.remove(taskId);
+            emitterMap.remove(taskId, emitter);
         });
         
         // 设置错误回调
         emitter.onError((e) -> {
             log.error("SSE 连接错误, taskId={}", taskId, e);
-            emitterMap.remove(taskId);
+            emitterMap.remove(taskId, emitter);
         });
-        
-        emitterMap.put(taskId, emitter);
+
         log.info("SSE 连接已创建, taskId={}", taskId);
-        
+
         return emitter;
     }
 
@@ -76,7 +79,7 @@ public class SseEmitterManager {
             log.debug("SSE 消息发送成功, taskId={}, message={}", taskId, message);
         } catch (IOException e) {
             log.error("SSE 消息发送失败, taskId={}", taskId, e);
-            emitterMap.remove(taskId);
+            emitterMap.remove(taskId, emitter);
         }
     }
 
@@ -98,7 +101,7 @@ public class SseEmitterManager {
         } catch (Exception e) {
             log.error("SSE 连接完成失败, taskId={}", taskId, e);
         } finally {
-            emitterMap.remove(taskId);
+            emitterMap.remove(taskId, emitter);
         }
     }
 

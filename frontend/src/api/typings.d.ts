@@ -35,7 +35,7 @@ declare namespace API {
     /** 副标题 */
     subTitle?: string;
     /** 概要 */
-    outline?: string;
+    outline?: OutlineSection[];
     /** 内容 */
     content?: string;
     /** 全文 */
@@ -43,7 +43,7 @@ declare namespace API {
     /** 封面图片 */
     coverImage?: string;
     /** 图片 */
-    images?: string;
+    images?: ImageResult[];
     /** 状态 */
     status?: string;
     /** 错误信息 */
@@ -82,6 +82,15 @@ declare namespace API {
 
   type Handler = {};
 
+  type ImageResult = {
+    position?: number;
+    url?: string;
+    method?: string;
+    keywords?: string;
+    sectionTitle?: string;
+    description?: string;
+  };
+
   type LoginUserVO = {
     /** id */
     id?: number;
@@ -110,6 +119,12 @@ declare namespace API {
     subtype?: string;
     parameters?: MapString;
     toStringValue?: string;
+  };
+
+  type OutlineSection = {
+    section?: number;
+    title?: string;
+    points?: string[];
   };
 
   type PageArticleVO = {
