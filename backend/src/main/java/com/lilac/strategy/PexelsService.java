@@ -1,11 +1,10 @@
-package com.lilac.service.impl;
+package com.lilac.strategy;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.lilac.config.PexelsConfig;
 import com.lilac.enums.ImageMethodEnum;
-import com.lilac.service.ImageSearchService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -41,6 +41,11 @@ public class LoginUserVO implements Serializable {
     private String userRole;
 
     /**
+     * Remaining article generation quota.
+     */
+    private Integer quota;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

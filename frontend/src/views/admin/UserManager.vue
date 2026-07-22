@@ -32,6 +32,9 @@
                     <a-tag v-if="record.userRole === 'admin'" color="gold">管理员</a-tag>
                     <a-tag v-else color="blue">普通用户</a-tag>
                 </template>
+                <template v-else-if="column.dataIndex === 'quota'">
+                    <a-tag :color="record.quota > 0 ? 'green' : 'red'">{{ record.quota ?? 0 }}</a-tag>
+                </template>
                 <template v-else-if="column.dataIndex === 'userStatus'">
                     <a-tag v-if="record.userStatus === 'disabled'" color="error">已禁用</a-tag>
                     <a-tag v-else color="success">正常</a-tag>
@@ -70,6 +73,10 @@
                         <a-select-option value="admin">管理员</a-select-option>
                     </a-select>
                 </a-form-item>
+                <a-form-item label="用户配额" required>
+                    <a-input-number v-model:value="formData.quota" :min="0" :precision="0" style="width: 100%"
+                        placeholder="请输入用户配额" />
+                </a-form-item>
                 <a-alert v-if="!isEdit" type="info" show-icon message="新增用户的默认密码为 123456，请提醒用户及时修改" />
             </a-form>
         </a-modal>
@@ -89,6 +96,7 @@ const columns = [
     { title: '账号', dataIndex: 'userAccount', width: 140 },
     { title: '昵称', dataIndex: 'userName', width: 120 },
     { title: '角色', dataIndex: 'userRole', width: 100 },
+    { title: '用户配额', dataIndex: 'quota', width: 110 },
     { title: '创建时间', dataIndex: 'createTime', width: 180 },
     { title: '操作', key: 'action', width: 280, fixed: 'right' },
 ]
@@ -166,6 +174,7 @@ const createDefaultFormData = (): API.UserAddRequest & API.UserUpdateRequest => 
     userAvatar: '',
     userProfile: '',
     userRole: 'user',
+    quota: 10,
 })
 
 const formData = reactive(createDefaultFormData())
@@ -185,6 +194,7 @@ const showEditModal = (record: API.LoginUserVO) => {
         userAvatar: record.userAvatar,
         userProfile: record.userProfile,
         userRole: record.userRole || 'user',
+        quota: record.quota ?? 10,
     })
     modalVisible.value = true
 }
@@ -192,6 +202,10 @@ const showEditModal = (record: API.LoginUserVO) => {
 const handleSubmit = async () => {
     if (!isEdit.value && !formData.userAccount) {
         message.warning('请填写账号')
+        return
+    }
+    if (formData.quota == null || formData.quota < 0) {
+        message.warning('用户配额不能小于 0')
         return
     }
     submitting.value = true

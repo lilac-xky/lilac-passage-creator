@@ -28,9 +28,10 @@
 
                     <a-select v-model:value="statusFilter" placeholder="全部状态" class="status-select" allow-clear
                         @change="loadData">
-                        <a-select-option value="CREATING">创作中</a-select-option>
-                        <a-select-option value="COMPLETED">已完成</a-select-option>
-                        <a-select-option value="FAILED">失败</a-select-option>
+                        <a-select-option value="待处理">待处理</a-select-option>
+                        <a-select-option value="处理中">处理中</a-select-option>
+                        <a-select-option value="已完成">已完成</a-select-option>
+                        <a-select-option value="失败">失败</a-select-option>
                     </a-select>
                 </div>
 
@@ -60,10 +61,9 @@
 
                         <!-- 状态 -->
                         <template v-else-if="column.key === 'status'">
-                            <div :class="['status-badge', record.status?.toLowerCase()]">
+                            <div :class="['status-badge', getStatusClass(record.status)]">
                                 <span class="dot"></span>
-                                {{ record.status === 'COMPLETED' ? '已完成' : record.status === 'CREATING' ? '创作中' : '失败'
-                                }}
+                                {{ getStatusText(record.status) }}
                             </div>
                         </template>
 
@@ -125,6 +125,21 @@ const searchKeyword = ref('')
 const statusFilter = ref<string | undefined>(undefined)
 const dateRange = ref<[dayjs.Dayjs, dayjs.Dayjs] | null>(null)
 
+const statusMap: Record<string, { text: string; className: string }> = {
+    '待处理': { text: '待处理', className: 'creating' },
+    PENDING: { text: '待处理', className: 'creating' },
+    '处理中': { text: '处理中', className: 'creating' },
+    PROCESSING: { text: '处理中', className: 'creating' },
+    CREATING: { text: '处理中', className: 'creating' },
+    '已完成': { text: '已完成', className: 'completed' },
+    COMPLETED: { text: '已完成', className: 'completed' },
+    '失败': { text: '失败', className: 'failed' },
+    FAILED: { text: '失败', className: 'failed' },
+}
+
+const getStatusText = (status?: string) => statusMap[status || '']?.text || status || '-'
+const getStatusClass = (status?: string) => statusMap[status || '']?.className || 'failed'
+
 const loadData = async () => {
     loading.value = true
     try {
@@ -150,7 +165,7 @@ const loadData = async () => {
         }
 
         dataSource.value = records
-        pagination.total = pageData?.totalRow || 0
+        pagination.total = Number(pageData?.totalRow || 0)
     } catch (error: any) {
         message.error(error.message || '加载失败')
     } finally {

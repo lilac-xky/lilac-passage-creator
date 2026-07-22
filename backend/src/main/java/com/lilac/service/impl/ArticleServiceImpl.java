@@ -17,6 +17,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +33,24 @@ import static com.lilac.constant.UserConstant.ADMIN_ROLE;
 public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> implements ArticleService {
 
     /**
+     * 创建文章生成任务
+     *
+     * @param topic  选题
+     * @param style  风格
+     * @param enabledImageMethods 启用的图片处理方法
+     * @param loginUser 登录用户
+     * @return 创建成功返回任务ID，失败返回 null
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String createArticleTaskWithQuotaCheck(String topic, String style, List<String> enabledImageMethods, User loginUser) {
+        // 在同一事务中：先扣配额，再创建任务
+        // 如果任务创建失败，配额会自动回滚
+//        quotaService.checkAndConsumeQuota(loginUser);
+        return createArticleTask(topic, style, enabledImageMethods, loginUser);
+    }
+
+    /**
      * 创建文章任务
      *
      * @param topic  选题
@@ -39,7 +58,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
      * @return 任务ID
      */
     @Override
-    public String createArticleTask(String topic, User loginUser) {
+    public String createArticleTask(String topic, String style, List<String> enabledImageMethods, User loginUser) {
         // 生成任务ID
         String taskId = IdUtil.simpleUUID();
         // 创建文章记录

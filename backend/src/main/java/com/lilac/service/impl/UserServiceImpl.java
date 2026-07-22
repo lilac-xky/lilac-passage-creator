@@ -18,6 +18,7 @@ import org.springframework.util.DigestUtils;
 import java.nio.charset.StandardCharsets;
 
 import static com.lilac.constant.UserConstant.USER_LOGIN_STATE;
+import static com.lilac.constant.UserConstant.DEFAULT_QUOTA;
 
 /**
  * 用户服务实现类
@@ -63,6 +64,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserPassword(encryptPassword);
         user.setUserName("user");
         user.setUserRole(UserRoleEnum.USER.getValue());
+        user.setQuota(DEFAULT_QUOTA);
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(HttpsCodeEnum.OPERATION_ERROR, "注册失败，数据库错误");

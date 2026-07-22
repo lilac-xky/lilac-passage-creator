@@ -41,4 +41,9 @@ public class UserUpdateRequest implements Serializable {
      * 用户角色：user/admin
      */
     private String userRole;
+
+    /**
+     * Remaining article generation quota.
+     */
+    private Integer quota;
 }

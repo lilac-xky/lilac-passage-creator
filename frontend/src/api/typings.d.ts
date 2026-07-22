@@ -2,6 +2,9 @@ declare namespace API {
   type ArticleCreateRequest = {
     /** 选题 */
     topic?: string;
+    /** 文章风格（可选） */
+    style?: string;
+    enabledImageMethods?: string[];
   };
 
   type ArticleQueryRequest = {
@@ -89,6 +92,8 @@ declare namespace API {
     keywords?: string;
     sectionTitle?: string;
     description?: string;
+    /** 占位符ID，用于在正文中定位插入位置 */
+    placeholderId?: string;
   };
 
   type LoginUserVO = {
@@ -104,6 +109,8 @@ declare namespace API {
     userProfile?: string;
     /** 用户角色：user-普通用户 admin-管理员 */
     userRole?: string;
+    /** Remaining article generation quota. */
+    quota?: number;
     /** 创建时间 */
     createTime?: string;
     /** 更新时间 */
@@ -248,6 +255,7 @@ zero-element list, the field is reset to the sentinel value. */
     userAvatar?: string;
     userProfile?: string;
     userRole?: string;
+    quota?: number;
   };
 
   type UserLoginRequest = {
@@ -298,5 +306,7 @@ zero-element list, the field is reset to the sentinel value. */
     userProfile?: string;
     /** 用户角色：user/admin */
     userRole?: string;
+    /** Remaining article generation quota. */
+    quota?: number;
   };
 }

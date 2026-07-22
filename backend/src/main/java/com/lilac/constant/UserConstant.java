@@ -19,4 +19,9 @@ public interface UserConstant {
      * 管理员角色
      */
     String ADMIN_ROLE = "admin";
+
+    /**
+     * Default article generation quota for new users.
+     */
+    Integer DEFAULT_QUOTA = 10;
 }

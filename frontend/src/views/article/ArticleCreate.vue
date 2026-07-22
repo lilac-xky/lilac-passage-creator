@@ -50,8 +50,41 @@
                                     <a-button v-if="taskId" size="small" danger @click="reconnectSSE">重新连接</a-button>
                                 </template>
                             </a-alert>
+
                             <a-textarea v-model:value="topic" placeholder="请输入您想创作的文章选题，例如：2026年AI如何改变职场" :rows="6"
                                 :maxlength="500" show-count class="topic-textarea" />
+
+                            <!-- 文章风格选择 -->
+                            <div class="form-section">
+                                <div class="section-header">
+                                    <span class="section-title">文章风格</span>
+                                    <span class="section-tip">（不选择使用默认风格）</span>
+                                </div>
+                                <a-radio-group v-model:value="selectedStyle" class="option-group">
+                                    <a-radio value="">默认</a-radio>
+                                    <a-radio value="tech">科技风格</a-radio>
+                                    <a-radio value="emotional">情感风格</a-radio>
+                                    <a-radio value="educational">教育风格</a-radio>
+                                    <a-radio value="humorous">轻松幽默</a-radio>
+                                </a-radio-group>
+                            </div>
+
+                            <!-- 配图方式选择 -->
+                            <div class="form-section">
+                                <div class="section-header">
+                                    <span class="section-title">配图方式</span>
+                                    <span class="section-tip">（不选择表示支持所有方式）</span>
+                                </div>
+                                <a-checkbox-group v-model:value="selectedImageMethods" class="option-group">
+                                    <a-checkbox value="PEXELS">Pexels</a-checkbox>
+                                    <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
+                                    <a-checkbox value="MERMAID">Mermaid</a-checkbox>
+                                    <a-checkbox value="ICONIFY">Iconify</a-checkbox>
+                                    <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
+                                    <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
+                                </a-checkbox-group>
+                            </div>
+
                             <a-button size="large" :loading="isCreating" :disabled="!topic.trim() || !hasQuota"
                                 @click="startCreate" class="create-btn">
                                 <template #icon>
@@ -59,6 +92,7 @@
                                 </template>
                                 开始创作
                             </a-button>
+
                             <div v-if="!hasQuota" class="quota-warning">
                                 <WarningOutlined />
                                 <span>配额已用完，无法创建文章</span>
@@ -276,7 +310,7 @@ import {
     BarChartOutlined,
     StarOutlined,
 } from '@ant-design/icons-vue'
-import { createArticle } from '@/api/articleController'
+import { createArticle, getArticle } from '@/api/articleController'
 import { closeSSE, connectSSE, type SSEMessage } from '@/utils/sse'
 import { message } from 'ant-design-vue'
 import { marked } from 'marked'
@@ -286,7 +320,7 @@ import { useRoute, useRouter } from 'vue-router'
 const router = useRouter()
 const route = useRoute()
 
-// 智能体步骤（对应后端 6 个步骤）
+// 智能体步骤
 const agentSteps = [
     { title: '生成标题', description: 'AI 分析选题，生成吸睛标题' },
     { title: '规划大纲', description: '构建文章结构，理清脉络' },
@@ -317,8 +351,10 @@ const taskId = ref('')
 const errorVisible = ref(false)
 const errorMessage = ref('')
 const hasQuota = ref(true)
+const selectedStyle = ref('')
+const selectedImageMethods = ref<string[]>([])
 
-// 大纲数据（流式）
+// 大纲数据
 const outlineRaw = ref('')
 
 // 配图进度
@@ -335,11 +371,26 @@ const article = ref<any>({
     images: [],
 })
 
-// SSE 连接实例
 let eventSource: EventSource | null = null
-
-// 内容区域引用（用于自动滚动）
 const mainContentRef = ref<HTMLElement | null>(null)
+const CREATION_SESSION_KEY = 'article-creation-session'
+
+const persistCreationSession = () => {
+    if (!taskId.value) return
+    sessionStorage.setItem(CREATION_SESSION_KEY, JSON.stringify({
+        topic: topic.value,
+        taskId: taskId.value,
+        selectedStyle: selectedStyle.value,
+        selectedImageMethods: selectedImageMethods.value,
+        isCreating: isCreating.value,
+        isCompleted: isCompleted.value,
+        currentStep: currentStep.value,
+        outlineRaw: outlineRaw.value,
+        imageCount: imageCount.value,
+        totalImages: totalImages.value,
+        article: article.value,
+    }))
+}
 
 interface OutlineItem {
     title: string
@@ -398,8 +449,12 @@ const startCreate = async () => {
     errorMessage.value = ''
 
     try {
-        const res = await createArticle({ topic: topic.value })
+        const res = await createArticle({
+            topic: topic.value, style: selectedStyle.value || undefined,
+            enabledImageMethods: selectedImageMethods.value.length > 0 ? selectedImageMethods.value : undefined
+        })
         taskId.value = res.data.data ?? ''
+        persistCreationSession()
         eventSource = connectSSE(taskId.value, {
             onMessage: handleSSEMessage,
             onError: handleSSEError,
@@ -463,6 +518,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
             isCreating.value = false
             break
     }
+    persistCreationSession()
 }
 
 const handleSSEError = (error: Event) => {
@@ -501,7 +557,12 @@ const viewArticle = () => {
 }
 
 const resetCreate = () => {
+    closeSSE(eventSource)
+    eventSource = null
+    sessionStorage.removeItem(CREATION_SESSION_KEY)
     topic.value = ''
+    selectedStyle.value = ''
+    selectedImageMethods.value = []
     isCreating.value = false
     isCompleted.value = false
     isStreaming.value = false
@@ -517,15 +578,68 @@ const resetCreate = () => {
         fullContent: '',
         images: [],
     }
+    taskId.value = ''
 }
 
-onMounted(() => {
+const restoreCreationSession = async () => {
+    const saved = sessionStorage.getItem(CREATION_SESSION_KEY)
+    if (!saved) return false
+    try {
+        const state = JSON.parse(saved)
+        if (!state.taskId) return false
+        topic.value = state.topic || ''
+        taskId.value = state.taskId
+        selectedStyle.value = state.selectedStyle || ''
+        selectedImageMethods.value = state.selectedImageMethods || []
+        currentStep.value = state.currentStep || 0
+        outlineRaw.value = state.outlineRaw || ''
+        imageCount.value = state.imageCount || 0
+        totalImages.value = state.totalImages || 5
+        article.value = state.article || article.value
+
+        const res = await getArticle({ taskId: taskId.value })
+        const detail = res.data.data
+        if (detail?.status === '已完成') {
+            article.value = {
+                mainTitle: detail.mainTitle || article.value.mainTitle,
+                subTitle: detail.subTitle || article.value.subTitle,
+                content: detail.content || article.value.content,
+                fullContent: detail.fullContent || '',
+                images: detail.images || [],
+            }
+            currentStep.value = 6
+            isCompleted.value = true
+            isCreating.value = false
+            persistCreationSession()
+            return true
+        }
+        if (detail?.status === '失败') {
+            isCreating.value = false
+            errorVisible.value = true
+            errorMessage.value = detail.errorMessage || '创作失败'
+            return true
+        }
+
+        isCreating.value = true
+        reconnectSSE()
+        return true
+    } catch (error) {
+        console.error('恢复创作流程失败:', error)
+        sessionStorage.removeItem(CREATION_SESSION_KEY)
+        return false
+    }
+}
+
+onMounted(async () => {
+    const restored = await restoreCreationSession()
+    if (restored) return
     if (route.query.topic) {
         topic.value = route.query.topic as string
     }
 })
 
 onBeforeUnmount(() => {
+    persistCreationSession()
     closeSSE(eventSource)
 })
 </script>
@@ -558,6 +672,7 @@ onBeforeUnmount(() => {
     gap: 24px;
 }
 
+/* （左侧侧边栏、右侧辅助面板、头部样式均保持不变） */
 .sidebar-left {
     width: 260px;
     flex-shrink: 0;
@@ -742,7 +857,7 @@ onBeforeUnmount(() => {
 .input-area {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
 }
 
 .topic-textarea {
@@ -770,6 +885,7 @@ onBeforeUnmount(() => {
     color: #9ca3af;
     border: none;
     width: 100%;
+    margin-top: 10px;
 }
 
 .create-btn:not([disabled]) {
@@ -780,6 +896,65 @@ onBeforeUnmount(() => {
 .create-btn:not([disabled]):hover {
     background-color: var(--primary-color-hover);
 }
+
+/* --- 新增：风格与配图选项组样式 --- */
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.section-header {
+    display: flex;
+    align-items: baseline;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.section-tip {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-left: 8px;
+}
+
+.option-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* 覆盖 Ant Design 默认外观，变成图中的圆角卡片 */
+.option-group :deep(.ant-radio-wrapper),
+.option-group :deep(.ant-checkbox-wrapper) {
+    margin: 0;
+    padding: 8px 16px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.option-group :deep(.ant-radio-wrapper:hover),
+.option-group :deep(.ant-checkbox-wrapper:hover) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* 选中状态的边框色和背景色 */
+.option-group :deep(.ant-radio-wrapper-checked),
+.option-group :deep(.ant-checkbox-wrapper-checked) {
+    border-color: var(--primary-color);
+    background-color: var(--primary-color-light);
+}
+
 
 .creating-state,
 .completed-state {

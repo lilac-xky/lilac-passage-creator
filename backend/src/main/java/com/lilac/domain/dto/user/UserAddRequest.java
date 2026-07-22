@@ -21,4 +21,6 @@ public class UserAddRequest implements Serializable {
     private String userProfile;
 
     private String userRole;
+
+    private Integer quota;
 }

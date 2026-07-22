@@ -1,11 +1,6 @@
 package com.lilac.enums;
 
-import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 图片检索方式枚举
@@ -13,37 +8,103 @@ import java.util.stream.Collectors;
 @Getter
 public enum ImageMethodEnum {
 
-    PICSUM("Picsum"),
-    PEXELS("Pexels"),
-    UNSPLASH("Unsplash");
+    /**
+     * Pexels 图库检索
+     */
+    PEXELS("PEXELS", "Pexels 图库", false, false),
 
+    /**
+     * Nano Banana AI 生图（Gemini 原生图片生成）
+     */
+    NANO_BANANA("NANO_BANANA", "Nano Banana AI 生图", true, false),
+
+    /**
+     * Mermaid 流程图生成
+     */
+    MERMAID("MERMAID", "Mermaid 流程图生成", true, false),
+
+    /**
+     * Iconify 图标库检索
+     */
+    ICONIFY("ICONIFY", "Iconify 图标库", false, false),
+
+    /**
+     * 表情包检索（Bing 图片搜索）
+     */
+    EMOJI_PACK("EMOJI_PACK", "表情包检索", false, false),
+
+    /**
+     * SVG 概念示意图生成（AI 生成 SVG 代码）
+     */
+    SVG_DIAGRAM("SVG_DIAGRAM", "SVG 概念示意图", true, false),
+
+    /**
+     * Picsum 随机图片（降级方案）
+     */
+    PICSUM("PICSUM", "Picsum 随机图片", false, true);
+
+    /**
+     * 方法值
+     */
     private final String value;
 
-    ImageMethodEnum(String value) {
+    /**
+     * 方法描述
+     */
+    private final String description;
+
+    /**
+     * 是否为 AI 生图方式
+     * true: 使用 prompt 生成图片（如 DALL-E、Midjourney、Nano Banana）
+     * false: 使用 keywords 检索图片（如 Pexels、Unsplash）
+     */
+    private final boolean aiGenerated;
+
+    /**
+     * 是否为降级方案
+     */
+    private final boolean fallback;
+
+    ImageMethodEnum(String value, String description, boolean aiGenerated, boolean fallback) {
         this.value = value;
+        this.description = description;
+        this.aiGenerated = aiGenerated;
+        this.fallback = fallback;
     }
 
     /**
-     * 根据值获取枚举项
+     * 根据值获取枚举
      */
     public static ImageMethodEnum getByValue(String value) {
-        if (ObjUtil.isEmpty(value)) {
+        if (value == null) {
             return null;
         }
-        for (ImageMethodEnum item : values()) {
-            if (item.value.equals(value)) {
-                return item;
+        for (ImageMethodEnum methodEnum : values()) {
+            if (methodEnum.getValue().equals(value)) {
+                return methodEnum;
             }
         }
         return null;
     }
 
     /**
-     * 获取所有枚举值列表
-     *
-     * @return 枚举值列表
+     * 获取默认的图库检索方式
      */
-    public static List<String> getValues() {
-        return Arrays.stream(values()).map(item -> item.value).collect(Collectors.toList());
+    public static ImageMethodEnum getDefaultSearchMethod() {
+        return PEXELS;
+    }
+
+    /**
+     * 获取默认的 AI 生图方式
+     */
+    public static ImageMethodEnum getDefaultAiMethod() {
+        return NANO_BANANA;
+    }
+
+    /**
+     * 获取降级方案
+     */
+    public static ImageMethodEnum getFallbackMethod() {
+        return PICSUM;
     }
 }

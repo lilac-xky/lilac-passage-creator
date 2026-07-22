@@ -84,6 +84,11 @@ public class UserController {
         ThrowUtils.throwIf(userAddRequest == null, HttpsCodeEnum.PARAMS_ERROR);
         User user = new User();
         BeanUtil.copyProperties(userAddRequest, user);
+        ThrowUtils.throwIf(user.getQuota() != null && user.getQuota() < 0,
+                HttpsCodeEnum.PARAMS_ERROR, "配额不能为负");
+        if (user.getQuota() == null) {
+            user.setQuota(UserConstant.DEFAULT_QUOTA);
+        }
         String defaultPassword = "123456";
         user.setUserPassword(userService.getEncryptPassword(defaultPassword));
         boolean result = userService.save(user);
@@ -155,6 +160,10 @@ public class UserController {
         user.setUserProfile(updateRequest.getUserProfile());
         if (StrUtil.isNotBlank(updateRequest.getUserRole())) {
             user.setUserRole(updateRequest.getUserRole());
+        }
+        if (updateRequest.getQuota() != null) {
+            ThrowUtils.throwIf(updateRequest.getQuota() < 0, HttpsCodeEnum.PARAMS_ERROR, "配额不能为负");
+            user.setQuota(updateRequest.getQuota());
         }
         boolean updated = userService.updateById(user);
         return Result.success(updated);

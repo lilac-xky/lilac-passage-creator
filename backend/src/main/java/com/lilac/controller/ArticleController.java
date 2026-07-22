@@ -7,14 +7,14 @@ import com.lilac.domain.dto.article.ArticleQueryRequest;
 import com.lilac.domain.entity.User;
 import com.lilac.domain.result.Result;
 import com.lilac.domain.vo.ArticleVO;
+import com.lilac.enums.ArticleStyleEnum;
 import com.lilac.enums.HttpsCodeEnum;
 import com.lilac.manager.SseEmitterManager;
 import com.lilac.service.ArticleService;
 import com.lilac.service.UserService;
-import com.lilac.service.impl.ArticleAsyncService;
+import com.lilac.service.ArticleAsyncService;
 import com.lilac.utils.ThrowUtils;
 import com.mybatisflex.core.paginate.Page;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -46,14 +46,16 @@ public class ArticleController {
         ThrowUtils.throwIf(request == null, HttpsCodeEnum.PARAMS_ERROR);
         ThrowUtils.throwIf(request.getTopic() == null || request.getTopic().trim().isEmpty(),
                 HttpsCodeEnum.PARAMS_ERROR, "选题不能为空");
+        ThrowUtils.throwIf(!ArticleStyleEnum.isValid(request.getStyle()), HttpsCodeEnum.PARAMS_ERROR, "无效的文章风格");
 
         User loginUser = userService.getLoginUser(httpServletRequest);
         // 创建文章任务
-        String taskId = articleService.createArticleTask(request.getTopic(), loginUser);
+        String taskId = articleService.createArticleTaskWithQuotaCheck(
+                request.getTopic(), request.getStyle(), request.getEnabledImageMethods(), loginUser);
         // 在异步任务启动前注册 Emitter，避免前端建立 SSE 连接前产生的事件丢失
         sseEmitterManager.createEmitter(taskId);
         // 异步执行文章生成
-        articleAsyncService.executeArticleGeneration(taskId, request.getTopic());
+        articleAsyncService.executeArticleGeneration(taskId, request.getTopic(), request.getStyle(), request.getEnabledImageMethods());
         return Result.success(taskId);
     }
 

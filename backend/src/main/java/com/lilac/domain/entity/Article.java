@@ -93,6 +93,11 @@ public class Article implements Serializable {
     private String errorMessage;
 
     /**
+     * 文章风格：tech/emotional/educational/humorous
+     */
+    private String style;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

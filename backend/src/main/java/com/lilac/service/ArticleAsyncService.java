@@ -1,10 +1,9 @@
-package com.lilac.service.impl;
+package com.lilac.service;
 
 import com.lilac.domain.dto.article.ArticleState;
 import com.lilac.enums.ArticleStatusEnum;
 import com.lilac.enums.SseMessageTypeEnum;
 import com.lilac.manager.SseEmitterManager;
-import com.lilac.service.ArticleService;
 import com.lilac.utils.GsonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +11,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,7 +35,7 @@ public class ArticleAsyncService {
      * @param topic  选题
      */
     @Async("articleExecutor")
-    public void executeArticleGeneration(String taskId, String topic) {
+    public void executeArticleGeneration(String taskId, String topic, String style, List<String> enabledImageMethods) {
         log.info("异步任务开始, taskId={}, topic={}", taskId, topic);
         
         try {
@@ -45,6 +45,8 @@ public class ArticleAsyncService {
             ArticleState state = new ArticleState();
             state.setTaskId(taskId);
             state.setTopic(topic);
+            state.setStyle(style);
+            state.setEnabledImageMethods(enabledImageMethods);
             
             // 执行智能体编排,并通过 SSE 推送进度
             articleAgentService.executeArticleGeneration(state, message -> {
