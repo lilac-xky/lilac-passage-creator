@@ -101,7 +101,7 @@ const columns = [
     { title: '角色', dataIndex: 'userRole', width: 100 },
     { title: '用户配额', dataIndex: 'quota', width: 110 },
     { title: '创建时间', dataIndex: 'createTime', width: 180 },
-    { title: '操作', key: 'action', width: 280, fixed: 'right' },
+    { title: '操作', key: 'action', width: 120, fixed: 'right' },
 ]
 
 const data = ref<API.LoginUserVO[]>([])
@@ -256,6 +256,66 @@ onMounted(() => {
 
 <style scoped>
 #userManagePage {
-    padding: 16px;
+    width: min(var(--content-width), calc(100% - 48px));
+    min-height: calc(100vh - 64px);
+    margin: 0 auto;
+    padding: 42px 0 64px;
+}
+
+#userManagePage h2 {
+    margin: 0 0 24px;
+    color: var(--color-text);
+    font-size: 28px;
+}
+
+#userManagePage> :deep(.ant-form) {
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+#userManagePage> :deep(.ant-divider) {
+    margin: 22px 0;
+    border-color: var(--color-border);
+}
+
+#userManagePage> :deep(.ant-table-wrapper) {
+    overflow: hidden;
+    padding: 10px 18px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+#userManagePage :deep(.ant-table-thead > tr > th) {
+    color: var(--color-text-secondary);
+    background: #f8fbf9;
+}
+
+@media (max-width: 720px) {
+    #userManagePage {
+        width: calc(100% - 32px);
+        padding: 28px 0 48px;
+    }
+
+    #userManagePage h2 {
+        font-size: 24px;
+    }
+
+    #userManagePage> :deep(.ant-form) {
+        display: grid;
+        padding: 16px;
+    }
+
+    #userManagePage :deep(.ant-form-item) {
+        margin-right: 0;
+    }
+
+    #userManagePage> :deep(.ant-table-wrapper) {
+        padding-inline: 10px;
+    }
 }
 </style>

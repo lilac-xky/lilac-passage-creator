@@ -807,19 +807,19 @@ onBeforeUnmount(() => {
 }
 
 .article-create-page {
-    --primary-color: #22C55E;
-    --primary-color-hover: #16A34A;
-    --primary-color-light: #dcfce7;
-    --bg-page: #f5f7fa;
-    --bg-card: #ffffff;
-    --text-main: #1f2937;
-    --text-sub: #6b7280;
-    --border-color: #e5e7eb;
-    --border-color-light: #f3f4f6;
+    --primary-color: var(--color-primary);
+    --primary-color-hover: var(--color-primary-hover);
+    --primary-color-light: var(--color-primary-soft);
+    --bg-page: var(--color-page);
+    --bg-card: var(--color-surface);
+    --text-main: var(--color-text);
+    --text-sub: var(--color-text-secondary);
+    --border-color: var(--color-border);
+    --border-color-light: var(--color-border-light);
 
     background-color: var(--bg-page);
     min-height: calc(100vh - 64px);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: inherit;
     padding-bottom: 40px;
 }
 
@@ -1369,5 +1369,108 @@ onBeforeUnmount(() => {
     max-width: 100%;
     border-radius: 8px;
     margin: 16px 0;
+}
+
+@media (max-width: 1180px) {
+    .create-layout {
+        gap: 20px;
+    }
+
+    .sidebar-left {
+        width: 220px;
+    }
+
+    .sidebar-right {
+        width: 260px;
+    }
+}
+
+@media (max-width: 980px) {
+    .sidebar-right {
+        display: none;
+    }
+}
+
+@media (max-width: 740px) {
+    .article-create-page {
+        padding-bottom: 24px;
+    }
+
+    .create-layout {
+        display: block;
+        padding: 18px 16px;
+    }
+
+    .sidebar-left {
+        position: static;
+        width: 100%;
+        margin-bottom: 22px;
+    }
+
+    .sidebar-header {
+        margin-bottom: 14px;
+    }
+
+    .flow-timeline {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 8px;
+    }
+
+    .flow-item {
+        flex: 0 0 116px;
+        align-items: center;
+        padding: 0 14px 0 0;
+    }
+
+    .flow-item::before {
+        top: 15px;
+        right: 0;
+        bottom: auto;
+        left: 32px;
+        width: calc(100% - 32px);
+        height: 2px;
+    }
+
+    .flow-indicator {
+        flex: 0 0 32px;
+        margin-right: 8px;
+    }
+
+    .flow-content {
+        min-width: 0;
+    }
+
+    .flow-title {
+        overflow: hidden;
+        font-size: 12px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .flow-desc,
+    .flow-status {
+        display: none;
+    }
+
+    .input-card {
+        padding: 26px 20px;
+    }
+
+    .input-title {
+        font-size: 25px;
+    }
+
+    .option-group {
+        gap: 10px 14px;
+    }
+
+    .preview-header {
+        margin-bottom: 24px;
+    }
+
+    .article-title {
+        font-size: 22px;
+    }
 }
 </style>

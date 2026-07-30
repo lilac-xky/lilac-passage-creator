@@ -158,7 +158,7 @@ const handlePurchase = async () => {
 <style scoped>
 .vip-page {
     min-height: calc(100vh - 64px);
-    color: #26262d;
+    color: var(--color-text);
     background: #fff;
 }
 
@@ -170,7 +170,7 @@ const handlePurchase = async () => {
 .intro-section {
     padding: 72px 20px 130px;
     color: #fff;
-    background: #292633;
+    background: #153b29;
 }
 
 .intro-content {
@@ -183,7 +183,7 @@ const handlePurchase = async () => {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #e9c86b;
+    color: #a8e1c2;
     font-size: 14px;
     font-weight: 650;
 }
@@ -199,7 +199,7 @@ const handlePurchase = async () => {
 .intro-content>p {
     max-width: 650px;
     margin: 0 auto;
-    color: #c9c6d0;
+    color: #bdd0c5;
     font-size: 17px;
     line-height: 1.8;
 }
@@ -210,15 +210,15 @@ const handlePurchase = async () => {
     gap: 8px;
     margin-top: 24px;
     padding: 8px 14px;
-    border: 1px solid #5d875f;
+    border: 1px solid #4f8368;
     border-radius: 6px;
-    color: #c8ebc9;
-    background: #303b32;
+    color: #cbf1dc;
+    background: #204c37;
 }
 
 .purchase-section {
     padding: 0 0 84px;
-    background: #f7f7f9;
+    background: var(--color-page);
 }
 
 .purchase-layout {
@@ -233,7 +233,7 @@ const handlePurchase = async () => {
 }
 
 .section-kicker {
-    color: #7557a6;
+    color: var(--color-primary);
     font-size: 13px;
     font-weight: 700;
 }
@@ -241,7 +241,7 @@ const handlePurchase = async () => {
 .benefits-panel h2,
 .faq-layout h2 {
     margin: 9px 0 32px;
-    color: #24242b;
+    color: var(--color-text);
     font-size: 29px;
     line-height: 1.35;
     letter-spacing: 0;
@@ -264,8 +264,8 @@ const handlePurchase = async () => {
     height: 42px;
     place-items: center;
     border-radius: 7px;
-    color: #7557a6;
-    background: #eee9f5;
+    color: var(--color-primary);
+    background: var(--color-primary-soft);
     font-size: 20px;
 }
 
@@ -276,22 +276,22 @@ const handlePurchase = async () => {
 
 .benefit-item p {
     margin: 0;
-    color: #696972;
+    color: var(--color-text-secondary);
     line-height: 1.65;
 }
 
 .pricing-card {
     margin-top: -72px;
     padding: 30px;
-    border: 1px solid #dedee4;
-    border-top: 4px solid #d3a742;
+    border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-primary);
     border-radius: 8px;
     background: #fff;
-    box-shadow: 0 14px 36px rgba(37, 34, 46, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .price-label {
-    color: #55525d;
+    color: var(--color-text-secondary);
     font-weight: 650;
 }
 
@@ -316,7 +316,7 @@ const handlePurchase = async () => {
 
 .period,
 .original-price {
-    color: #7b7b84;
+    color: var(--color-text-muted);
     font-size: 13px;
 }
 
@@ -327,7 +327,7 @@ const handlePurchase = async () => {
 .divider {
     height: 1px;
     margin: 24px 0;
-    background: #ececef;
+    background: var(--color-border-light);
 }
 
 .price-features {
@@ -336,23 +336,23 @@ const handlePurchase = async () => {
     margin: 0 0 26px;
     padding: 0;
     list-style: none;
-    color: #47474f;
+    color: var(--color-text);
 }
 
 .price-features :deep(.anticon) {
     margin-right: 8px;
-    color: #4d8756;
+    color: var(--color-primary);
 }
 
 .purchase-button {
     height: 46px;
-    background: #7557a6;
+    background: var(--color-primary);
     box-shadow: none;
     font-weight: 650;
 }
 
 .purchase-button:not(:disabled):hover {
-    background: #654890;
+    background: var(--color-primary-hover);
 }
 
 .payment-note {
@@ -361,13 +361,13 @@ const handlePurchase = async () => {
     align-items: center;
     gap: 6px;
     margin: 15px 0 0;
-    color: #888891;
+    color: var(--color-text-muted);
     font-size: 12px;
 }
 
 .faq-section {
     padding: 76px 0;
-    border-top: 1px solid #ececef;
+    border-top: 1px solid var(--color-border-light);
 }
 
 .faq-layout {
@@ -388,7 +388,7 @@ const handlePurchase = async () => {
 
 .faq-layout :deep(.ant-collapse-content-box p) {
     margin: 0;
-    color: #696972;
+    color: var(--color-text-secondary);
     line-height: 1.7;
 }
 

@@ -29,7 +29,7 @@
                     <div class="article-meta">
                         <span class="status-tag">已完成</span>
                         <span class="create-time">创建于 {{ dayjs(article.createTime).format('YYYY-MM-DD HH:mm:ss')
-                            }}</span>
+                        }}</span>
                     </div>
                 </div>
 
@@ -155,14 +155,14 @@ onMounted(() => {
 <style scoped>
 .article-detail-page {
     min-height: calc(100vh - 64px);
-    background-color: #f5f7fa;
+    background-color: var(--color-page);
     position: relative;
     padding-bottom: 60px;
 }
 
 /* 顶部绿色背景及操作栏 */
 .detail-header-bg {
-    background: linear-gradient(to bottom, #dcfce7 0%, #f5f7fa 100%);
+    background: var(--color-primary-soft);
     height: 140px;
     position: absolute;
     top: 0;
@@ -187,14 +187,14 @@ onMounted(() => {
 }
 
 .export-btn {
-    background-color: #22c55e;
+    background-color: var(--color-primary);
     border: none;
     border-radius: 8px;
     font-weight: 500;
 }
 
 .export-btn:hover {
-    background-color: #16a34a;
+    background-color: var(--color-primary-hover);
 }
 
 /* 详情主容器 */
@@ -210,9 +210,10 @@ onMounted(() => {
 /* 核心文章卡片 */
 .article-card {
     background: #ffffff;
-    border-radius: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
     padding: 48px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-md);
 }
 
 /* 文章头部居中 */
@@ -280,7 +281,7 @@ onMounted(() => {
 .outline-block {
     background-color: #f9fafb;
     border: 1px solid #f3f4f6;
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 24px;
 }
 
@@ -338,10 +339,48 @@ onMounted(() => {
 .loading-container,
 .error-container {
     background: #ffffff;
-    border-radius: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
     padding: 100px 0;
     text-align: center;
     color: #6b7280;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 700px) {
+    .detail-header-bg {
+        height: 112px;
+    }
+
+    .header-actions {
+        padding: 18px 16px;
+    }
+
+    .detail-container {
+        margin-top: 56px;
+        padding: 0 16px;
+    }
+
+    .article-card {
+        padding: 28px 20px;
+    }
+
+    .article-header {
+        margin-bottom: 34px;
+        padding-bottom: 28px;
+    }
+
+    .main-title {
+        font-size: 26px;
+        line-height: 1.35;
+    }
+
+    .outline-section {
+        margin-bottom: 34px;
+    }
+
+    .outline-block {
+        padding: 18px;
+    }
 }
 </style>

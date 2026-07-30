@@ -1,9 +1,30 @@
 <template>
     <div id="userLoginPage">
-        <div class="form-card">
-            <h2 class="form-title">欢迎回来</h2>
+        <div class="auth-shell">
+            <aside class="auth-brand-panel">
+                <RouterLink class="auth-brand" to="/"><span>L</span> Lilac Passage</RouterLink>
+                <div class="brand-message">
+                    <div class="brand-kicker"><BulbOutlined /> AI 智能文章创作</div>
+                    <h1>让每个想法，<br>都有清晰的表达。</h1>
+                    <p>从选题、标题、大纲到正文与配图，在一个连贯的流程中完成创作。</p>
+                </div>
+                <div class="brand-flow">
+                    <div><CheckOutlined /><span><b>确定方向</b><small>输入选题，选择标题</small></span></div>
+                    <div><CheckOutlined /><span><b>搭建结构</b><small>生成并调整内容大纲</small></span></div>
+                    <div><EditOutlined /><span><b>完成创作</b><small>生成正文与智能配图</small></span></div>
+                </div>
+                <p class="brand-note">专注表达，其余交给 Lilac。</p>
+            </aside>
 
-            <p class="form-subtitle">登录您的账号继续创作</p>
+            <div class="auth-form-panel">
+                <div class="form-card">
+                    <RouterLink class="mobile-brand" to="/"><span>L</span> Lilac Passage</RouterLink>
+                    <div class="form-heading">
+                        <span>账户登录</span>
+                        <h2 class="form-title">欢迎回来</h2>
+
+                        <p class="form-subtitle">登录您的账号，继续上一次创作</p>
+                    </div>
 
             <a-form :model="formState" @finish="handleSubmit">
                 <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
@@ -32,9 +53,11 @@
                 </a-form-item>
             </a-form>
 
-            <div class="form-footer">
-                <span>还没有账号？</span>
-                <RouterLink to="/user/register">立即注册</RouterLink>
+                    <div class="form-footer">
+                        <span>还没有账号？</span>
+                        <RouterLink to="/user/register">立即注册</RouterLink>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -46,7 +69,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { LockOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { BulbOutlined, CheckOutlined, EditOutlined, LockOutlined, UserOutlined } from '@ant-design/icons-vue'
 
 // 表单数据
 const formState = reactive<API.UserLoginRequest>({
@@ -72,3 +95,5 @@ const handleSubmit = async (values: any) => {
     } 
 }
 </script>
+
+<style scoped src="./auth.css"></style>

@@ -223,13 +223,13 @@ onMounted(() => {
 <style scoped>
 .article-list-page {
     min-height: calc(100vh - 64px);
-    background-color: #f5f7fa;
+    background-color: var(--color-page);
     position: relative;
 }
 
 /* 顶部绿色渐变背景区 */
 .page-header {
-    background: linear-gradient(to bottom, #dcfce7 0%, #f5f7fa 100%);
+    background: var(--color-primary-soft);
     padding: 40px 0 60px;
     /* 留出底部空间给下方的卡片往上提 */
 }
@@ -257,7 +257,7 @@ onMounted(() => {
 }
 
 .create-btn {
-    background-color: #22c55e;
+    background-color: var(--color-primary);
     border: none;
     border-radius: 8px;
     font-weight: 500;
@@ -266,7 +266,7 @@ onMounted(() => {
 }
 
 .create-btn:hover {
-    background-color: #16a34a;
+    background-color: var(--color-primary-hover);
 }
 
 /* 列表主容器 */
@@ -280,12 +280,13 @@ onMounted(() => {
 /* 搜索过滤卡片 */
 .filter-card {
     background: #ffffff;
-    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
     padding: 20px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 24px;
 }
 
@@ -326,9 +327,11 @@ onMounted(() => {
 /* 表格卡片 */
 .table-card {
     background: #ffffff;
-    border-radius: 12px;
+    overflow-x: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
     padding: 24px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
 }
 
 /* 穿透修改 Ant Table 样式以符合图纸的扁平无框风格 */
@@ -447,7 +450,81 @@ onMounted(() => {
 }
 
 .action-link.view {
-    color: #22c55e;
+    color: var(--color-primary);
+}
+
+@media (max-width: 860px) {
+    .filter-card {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .filter-inputs {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .search-input {
+        flex: 1 1 260px;
+    }
+
+    .date-picker {
+        flex: 1 1 250px;
+    }
+
+    .status-select {
+        flex: 1 1 140px;
+    }
+}
+
+@media (max-width: 600px) {
+    .page-header {
+        padding: 30px 0 54px;
+    }
+
+    .header-inner {
+        align-items: flex-start;
+        gap: 18px;
+        padding: 0 16px;
+    }
+
+    .title-area h1 {
+        font-size: 24px;
+    }
+
+    .create-btn {
+        flex: 0 0 auto;
+        padding-inline: 14px;
+    }
+
+    .list-container {
+        margin-top: -34px;
+        padding: 0 16px;
+    }
+
+    .filter-card {
+        padding: 16px;
+    }
+
+    .filter-inputs {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .search-input,
+    .date-picker,
+    .status-select {
+        width: 100%;
+    }
+
+    .table-card {
+        padding: 12px;
+    }
+
+    .table-card :deep(.ant-table) {
+        min-width: 900px;
+    }
 }
 
 .action-link.export {
