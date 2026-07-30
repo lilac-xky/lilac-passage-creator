@@ -40,13 +40,17 @@
             </div>
         </div>
 
-        <div class="ai-chat-section">
+        <div class="ai-chat-section" :class="{ 'vip-only': !isVip }">
             <div class="chat-header">
                 <RobotOutlined />
                 <span>AI 助手修改大纲</span>
+                <span v-if="!isVip" class="vip-badge-small">
+                    <CrownOutlined />
+                    VIP
+                </span>
             </div>
 
-            <div class="chat-input-wrapper">
+            <div v-if="isVip" class="chat-input-wrapper">
                 <a-textarea v-model:value="modifySuggestion" placeholder="告诉 AI 如何修改大纲，例如：请在第二章节后增加一个关于实践案例的章节"
                     :rows="3" :maxlength="500" show-count class="chat-textarea" />
                 <a-button type="primary" :loading="aiModifying" :disabled="!modifySuggestion.trim()"
@@ -56,6 +60,12 @@
                     </template>
                     AI 修改大纲
                 </a-button>
+            </div>
+
+            <div v-else class="vip-upgrade-notice">
+                <CrownOutlined class="vip-icon" />
+                <p>AI 修改大纲功能仅限 VIP 会员使用</p>
+                <RouterLink to="/vip" class="upgrade-btn">立即升级 VIP</RouterLink>
             </div>
         </div>
 
@@ -76,11 +86,14 @@
             </a-button>
         </div>
     </div>
+
 </template>
 
 <script setup lang="ts">
-import { CheckOutlined, DeleteOutlined, PlusOutlined, RobotOutlined } from '@ant-design/icons-vue'
+import { CheckOutlined, CrownOutlined, DeleteOutlined, PlusOutlined, RobotOutlined } from '@ant-design/icons-vue'
 import { aiModifyOutline } from '@/api/articleController'
+import { hasVipAccess } from '@/constant/user'
+import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
 import Sortable, { type SortableEvent } from 'sortablejs'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -107,6 +120,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+const loginUserStore = useLoginUserStore()
+const isVip = computed(() => hasVipAccess(loginUserStore.loginUser.userRole))
 
 // 转换 API 类型为内部类型
 const outlineSections = ref<OutlineSection[]>(
@@ -326,6 +341,47 @@ const handleAiModify = async () => {
 
 .chat-textarea {
     flex: 1;
+}
+
+.ai-chat-section.vip-only {
+    border-color: #fcd34d;
+    background: #fffbeb;
+}
+
+.vip-badge-small {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 12px;
+}
+
+.vip-upgrade-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 4px;
+    text-align: center;
+    color: var(--text-sub);
+}
+
+.vip-upgrade-notice .vip-icon {
+    color: #d97706;
+    font-size: 24px;
+}
+
+.vip-upgrade-notice p {
+    margin: 0;
+}
+
+.upgrade-btn {
+    color: var(--primary-color-hover);
+    font-weight: 600;
 }
 
 .actions {

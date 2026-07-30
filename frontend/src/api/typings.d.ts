@@ -146,6 +146,8 @@ declare namespace API {
     userRole?: string;
     /** Remaining article generation quota. */
     quota?: number;
+    /** 成为会员时间 */
+    vipTime?: string;
     /** 创建时间 */
     createTime?: string;
     /** 更新时间 */
@@ -189,6 +191,39 @@ declare namespace API {
     optimizeCountQuery?: boolean;
   };
 
+  type PaymentRecord = {
+    /** id */
+    id?: number;
+    /** 用户ID */
+    userId?: number;
+    /** Stripe Checkout Session ID */
+    stripeSessionId?: string;
+    /** Stripe 支付意向ID */
+    stripePaymentIntentId?: string;
+    /** 金额（美元） */
+    amount?: number;
+    /** 货币 */
+    currency?: string;
+    /** 状态：PENDING/SUCCEEDED/FAILED/REFUNDED */
+    status?: string;
+    /** 产品类型：VIP_PERMANENT */
+    productType?: string;
+    /** 描述 */
+    description?: string;
+    /** 退款时间 */
+    refundTime?: string;
+    /** 退款原因 */
+    refundReason?: string;
+    /** 创建时间 */
+    createTime?: string;
+    /** 更新时间 */
+    updateTime?: string;
+  };
+
+  type refundParams = {
+    reason?: string;
+  };
+
   type ResultArticleVO = {
     code?: number;
     msg?: string;
@@ -205,6 +240,12 @@ declare namespace API {
     code?: number;
     msg?: string;
     data?: OutlineSection[];
+  };
+
+  type ResultListPaymentRecord = {
+    code?: number;
+    msg?: string;
+    data?: PaymentRecord[];
   };
 
   type ResultLoginUserVO = {

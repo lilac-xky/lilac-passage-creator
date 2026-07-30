@@ -30,10 +30,12 @@
                 </template>
                 <template v-else-if="column.dataIndex === 'userRole'">
                     <a-tag v-if="record.userRole === 'admin'" color="gold">管理员</a-tag>
+                    <a-tag v-else-if="record.userRole === 'vip'" color="purple">VIP 会员</a-tag>
                     <a-tag v-else color="blue">普通用户</a-tag>
                 </template>
                 <template v-else-if="column.dataIndex === 'quota'">
-                    <a-tag :color="record.quota > 0 ? 'green' : 'red'">{{ record.quota ?? 0 }}</a-tag>
+                    <a-tag v-if="hasVipAccess(record.userRole)" color="green">无限次数</a-tag>
+                    <a-tag v-else :color="record.quota > 0 ? 'green' : 'red'">{{ record.quota ?? 0 }}</a-tag>
                 </template>
                 <template v-else-if="column.dataIndex === 'userStatus'">
                     <a-tag v-if="record.userStatus === 'disabled'" color="error">已禁用</a-tag>
@@ -87,6 +89,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { listUserVoByPage, addUser, updateUser, deleteUser } from '@/api/userController'
+import { hasVipAccess } from '@/constant/user'
 import dayjs from 'dayjs'
 
 // 表格列定义

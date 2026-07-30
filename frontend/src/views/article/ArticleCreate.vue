@@ -77,12 +77,27 @@
                                 </div>
                                 <a-checkbox-group v-model:value="selectedImageMethods" class="option-group">
                                     <a-checkbox value="PEXELS">Pexels</a-checkbox>
-                                    <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
+                                    <a-tooltip :title="isVip ? '' : '仅限 VIP 会员'">
+                                        <a-checkbox value="NANO_BANANA" :disabled="!isVip">
+                                            Nano Banana
+                                            <CrownOutlined v-if="!isVip" class="vip-icon" />
+                                        </a-checkbox>
+                                    </a-tooltip>
                                     <a-checkbox value="MERMAID">Mermaid</a-checkbox>
                                     <a-checkbox value="ICONIFY">Iconify</a-checkbox>
                                     <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
-                                    <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
+                                    <a-tooltip :title="isVip ? '' : '仅限 VIP 会员'">
+                                        <a-checkbox value="SVG_DIAGRAM" :disabled="!isVip">
+                                            SVG
+                                            <CrownOutlined v-if="!isVip" class="vip-icon" />
+                                        </a-checkbox>
+                                    </a-tooltip>
                                 </a-checkbox-group>
+                                <div v-if="!isVip" class="vip-notice">
+                                    <CrownOutlined />
+                                    <span>AI 生图和 SVG 图表为 VIP 专属功能，</span>
+                                    <RouterLink to="/vip" class="upgrade-link">立即升级</RouterLink>
+                                </div>
                             </div>
 
                             <a-button size="large" :loading="isCreating" :disabled="!topic.trim() || !hasQuota"
@@ -96,6 +111,12 @@
                             <div v-if="!hasQuota" class="quota-warning">
                                 <WarningOutlined />
                                 <span>配额已用完，无法创建文章</span>
+                            </div>
+                            <div v-else class="quota-status">
+                                <span :class="['quota-badge', { admin: isAdmin, vip: isVip }]">
+                                    {{ isAdmin ? '管理员' : isVip ? 'VIP 会员' : '普通用户' }}
+                                </span>
+                                <span class="quota-text">{{ isAdmin || isVip ? '无限次' : `剩余 ${quota} 次` }}</span>
                             </div>
                         </div>
                     </div>
@@ -118,7 +139,8 @@
                         <a-progress :percent="imageProgress" status="active"
                             :stroke-color="{ from: 'var(--primary-color)', to: 'var(--primary-color-hover)' }" />
                         <p class="progress-hint">
-                            {{ currentPhase === 'IMAGE_ANALYZING' ? '正在分析正文中的配图位置和内容' : `${imageCount}/${totalImages} 张图片已完成` }}
+                            {{ currentPhase === 'IMAGE_ANALYZING' ? '正在分析正文中的配图位置和内容' : `${imageCount}/${totalImages}
+                            张图片已完成` }}
                         </p>
                     </div>
 
@@ -300,6 +322,7 @@
             </aside>
         </div>
     </div>
+
 </template>
 
 <script setup lang="ts">
@@ -319,6 +342,7 @@ import {
     RedoOutlined,
     BarChartOutlined,
     StarOutlined,
+    CrownOutlined,
 } from '@ant-design/icons-vue'
 import { confirmOutline, confirmTitle, createArticle, getArticle } from '@/api/articleController'
 import { closeSSE, connectSSE, type SSEMessage } from '@/utils/sse'
@@ -328,9 +352,18 @@ import { message } from 'ant-design-vue'
 import { marked } from 'marked'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { hasVipAccess, USER_ROLE_ADMIN } from '@/constant/user'
+import { useLoginUserStore } from '@/stores/loginUser'
 
 const router = useRouter()
 const route = useRoute()
+const loginUserStore = useLoginUserStore()
+
+// 配额相关计算属性
+const isAdmin = computed(() => loginUserStore.loginUser.userRole === USER_ROLE_ADMIN)
+const isVip = computed(() => hasVipAccess(loginUserStore.loginUser.userRole))
+const quota = computed(() => loginUserStore.loginUser.quota ?? 0)
+const hasQuota = computed(() => isAdmin.value || isVip.value || quota.value > 0)
 
 // 阶段状态
 const currentPhase = ref<string>('INPUT')  // INPUT, TITLE_SELECTING, OUTLINE_EDITING, CONTENT_GENERATING, COMPLETED
@@ -374,7 +407,6 @@ const currentStep = ref(0)
 const taskId = ref('')
 const errorVisible = ref(false)
 const errorMessage = ref('')
-const hasQuota = ref(true)
 const selectedStyle = ref('')
 const selectedImageMethods = ref<string[]>([])
 
@@ -1082,6 +1114,64 @@ onBeforeUnmount(() => {
 .option-group :deep(.ant-checkbox-wrapper-checked) {
     border-color: var(--primary-color);
     background-color: var(--primary-color-light);
+}
+
+.option-group :deep(.ant-checkbox-wrapper-disabled) {
+    cursor: not-allowed;
+    background: var(--border-color-light);
+}
+
+.vip-icon {
+    margin-left: 6px;
+    color: #d97706;
+}
+
+.vip-notice,
+.quota-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-sub);
+}
+
+.vip-notice> :first-child {
+    color: #d97706;
+}
+
+.upgrade-link {
+    color: var(--primary-color-hover);
+    font-weight: 600;
+}
+
+.quota-status {
+    justify-content: center;
+}
+
+.quota-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--border-color-light);
+    color: var(--text-sub);
+}
+
+.quota-badge.admin {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.quota-badge.vip {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.quota-warning {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #dc2626;
+    font-size: 13px;
 }
 
 

@@ -60,7 +60,15 @@ public class User implements Serializable {
      */
     private String userRole;
 
+    /**
+     * 额度
+     */
     private Integer quota;
+
+    /**
+     * 成为会员时间
+     */
+    private LocalDateTime vipTime;
 
     /**
      * 编辑时间

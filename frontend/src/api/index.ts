@@ -4,7 +4,9 @@
 // API 唯一标识：
 import * as userController from "./userController";
 import * as articleController from "./articleController";
+import * as paymentController from "./paymentController";
 export default {
   userController,
   articleController,
+  paymentController,
 };

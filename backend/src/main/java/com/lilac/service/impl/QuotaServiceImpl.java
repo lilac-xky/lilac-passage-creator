@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import static com.lilac.constant.UserConstant.ADMIN_ROLE;
+import static com.lilac.constant.UserConstant.VIP_ROLE;
 
 @Service
 @Slf4j
@@ -28,8 +29,8 @@ public class QuotaServiceImpl implements QuotaService {
      */
     @Override
     public boolean hasQuota(User user) {
-        // 管理员无限配额
-        if (isAdmin(user)) {
+        // 管理员和VIP用户无限配额
+        if (isAdmin(user) || isVip(user)) {
             return true;
         }
         // 从数据库查询最新配额，避免使用缓存的旧数据
@@ -47,8 +48,8 @@ public class QuotaServiceImpl implements QuotaService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void consumeQuota(User user) {
-        // 管理员不消耗配额
-        if (isAdmin(user)) {
+        // 管理员和VIP用户跳过检查
+        if (isAdmin(user) || isVip(user)) {
             return;
         }
 
@@ -69,8 +70,8 @@ public class QuotaServiceImpl implements QuotaService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void checkAndConsumeQuota(User user) {
-        // 管理员跳过检查
-        if (isAdmin(user)) {
+        // 管理员和VIP用户跳过检查
+        if (isAdmin(user) || isVip(user)) {
             return;
         }
 
@@ -91,5 +92,12 @@ public class QuotaServiceImpl implements QuotaService {
      */
     private boolean isAdmin(User user) {
         return ADMIN_ROLE.equals(user.getUserRole());
+    }
+
+    /**
+     * 判断是否为 VIP
+     */
+    private boolean isVip(User user) {
+        return VIP_ROLE.equals(user.getUserRole());
     }
 }

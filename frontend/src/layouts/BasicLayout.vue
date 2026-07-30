@@ -20,13 +20,15 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 
 <style scoped>
 .basic-layout {
-    background: none;
+    min-height: 100vh;
+    background: var(--color-page);
 }
 
 .main-content {
     width: 100%;
     padding: 0;
-    background: none;
+    flex: 1;
+    background: var(--color-page);
     margin: 0;
 }
 </style>

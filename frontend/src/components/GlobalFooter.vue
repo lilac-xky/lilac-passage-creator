@@ -16,17 +16,16 @@
 
 <style scoped>
 .footer {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
+    background: var(--color-surface);
     text-align: center;
-    padding: 20px;
-    margin-top: 40px;
-    border-top: 1px solid rgba(102, 126, 234, 0.1);
+    padding: 24px 20px;
+    margin-top: 0;
+    border-top: 1px solid var(--color-border);
 }
 
 .copyright {
     margin: 0;
-    color: #666;
+    color: var(--color-text-secondary);
     font-size: 14px;
 }
 </style>

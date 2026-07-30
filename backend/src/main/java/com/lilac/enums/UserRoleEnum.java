@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public enum UserRoleEnum {
 
     USER("用户", "user"),
+    VIP("VIP 用户", "vip"),
     ADMIN("管理员", "admin");
 
     private final String text;

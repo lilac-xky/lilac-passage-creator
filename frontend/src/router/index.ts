@@ -45,6 +45,11 @@ const router = createRouter({
       name: '文章详情',
       component: () => import('@/views/article/ArticleDetail.vue'),
     },
+    {
+      path: '/vip',
+      name: '会员购买',
+      component: () => import('@/views/Vip.vue'),
+    },
   ],
 })
 

@@ -43,8 +43,13 @@ public class AuthInterceptor {
         if (userRoleEnum == null) {
             throw new BusinessException(HttpsCodeEnum.UNAUTHORIZED);
         }
-        // 要求必须有管理员权限，但当前用户没有
-        if (UserRoleEnum.ADMIN.equals(mustRoleEnum) && !UserRoleEnum.ADMIN.equals(userRoleEnum)) {
+        // user 表示已登录；VIP 权限同时向管理员开放；管理员接口仅允许管理员。
+        boolean hasRequiredRole = switch (mustRoleEnum) {
+            case USER -> true;
+            case VIP -> UserRoleEnum.VIP.equals(userRoleEnum) || UserRoleEnum.ADMIN.equals(userRoleEnum);
+            case ADMIN -> UserRoleEnum.ADMIN.equals(userRoleEnum);
+        };
+        if (!hasRequiredRole) {
             throw new BusinessException(HttpsCodeEnum.UNAUTHORIZED);
         }
         // 通过权限校验，放行

@@ -21,7 +21,13 @@ public interface UserConstant {
     String ADMIN_ROLE = "admin";
 
     /**
-     * Default article generation quota for new users.
+     * VIP 角色
      */
-    Integer DEFAULT_QUOTA = 10;
+    String VIP_ROLE = "vip";
+
+    /**
+     * 默认配额
+     */
+    Integer DEFAULT_QUOTA = 5;
+
 }

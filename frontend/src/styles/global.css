@@ -1,0 +1,107 @@
+:root {
+  --color-primary: #16a36a;
+  --color-primary-hover: #118456;
+  --color-primary-soft: #eaf8f1;
+  --color-primary-pale: #f4fbf7;
+  --color-text: #17211b;
+  --color-text-secondary: #607067;
+  --color-text-muted: #8a9890;
+  --color-border: #dfe9e3;
+  --color-border-light: #edf3ef;
+  --color-surface: #ffffff;
+  --color-page: #f6f9f7;
+  --shadow-sm: 0 1px 2px rgba(20, 52, 34, 0.04);
+  --shadow-md: 0 10px 28px rgba(20, 52, 34, 0.08);
+  --content-width: 1180px;
+  color: var(--color-text);
+  background: var(--color-page);
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--color-page);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--color-text);
+  background: var(--color-page);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+::selection {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+:where(.ant-btn-primary) {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary) !important;
+  box-shadow: none !important;
+}
+
+:where(.ant-btn-primary:not(:disabled):hover) {
+  border-color: var(--color-primary-hover) !important;
+  background: var(--color-primary-hover) !important;
+}
+
+:where(.ant-input-affix-wrapper:hover, .ant-input:hover, .ant-select-selector:hover) {
+  border-color: #83caaa !important;
+}
+
+:where(.ant-input-affix-wrapper-focused, .ant-input:focus, .ant-select-focused .ant-select-selector) {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(22, 163, 106, 0.12) !important;
+}
+
+:where(.ant-menu-light.ant-menu-horizontal > .ant-menu-item-selected)::after,
+:where(.ant-menu-light.ant-menu-horizontal > .ant-menu-submenu-selected)::after {
+  border-bottom-color: var(--color-primary) !important;
+}
+
+:where(.ant-menu-light .ant-menu-item-selected) {
+  color: var(--color-primary) !important;
+}
+
+:where(.ant-pagination .ant-pagination-item-active) {
+  border-color: var(--color-primary);
+}
+
+:where(.ant-pagination .ant-pagination-item-active a) {
+  color: var(--color-primary);
+}
+
+@media (max-width: 600px) {
+  :root {
+    --shadow-md: 0 6px 18px rgba(20, 52, 34, 0.07);
+  }
+}

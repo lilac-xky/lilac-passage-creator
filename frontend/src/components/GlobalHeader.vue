@@ -1,159 +1,271 @@
 <template>
-    <a-layout-header class="header">
-        <a-row :wrap="false">
-            <!-- 左侧：Logo和标题 -->
-            <a-col flex="200px">
-                <RouterLink to="/">
-                    <div class="header-left">
-                        <!-- <img class="logo" src="@/assets/logo.png" alt="Logo" /> -->
-                        <h1 class="site-title">lilac-passage-creator</h1>
-                    </div>
+    <a-layout-header class="global-header">
+        <div class="header-inner">
+            <RouterLink class="brand" to="/" aria-label="返回首页">
+                <span class="brand-mark">L</span>
+                <span class="brand-name">Lilac Passage</span>
+            </RouterLink>
+
+            <a-menu class="desktop-nav" mode="horizontal" :selected-keys="selectedKeys" :items="menuItems"
+                @click="handleMenuClick" />
+
+            <div class="header-actions">
+                <RouterLink v-if="loginUserStore.loginUser.id" class="vip-link" to="/vip">
+                    <CrownOutlined />
+                    <span>{{ isVip ? '永久会员' : '升级会员' }}</span>
                 </RouterLink>
-            </a-col>
 
-            <!-- 中间：导航菜单 -->
-            <a-col flex="auto">
-                <a-menu v-model:selectedKeys="selectedKeys" mode="horizontal" :items="menuItems"
-                    @click="handleMenuClick" />
-            </a-col>
+                <a-dropdown v-if="loginUserStore.loginUser.id" placement="bottomRight">
+                    <button class="user-trigger" type="button">
+                        <a-avatar :src="loginUserStore.loginUser.userAvatar" :size="34">
+                            {{ userInitial }}
+                        </a-avatar>
+                        <span class="user-name">{{ loginUserStore.loginUser.userName || '用户' }}</span>
+                        <DownOutlined class="down-icon" />
+                    </button>
+                    <template #overlay>
+                        <a-menu>
+                            <a-menu-item key="vip" @click="router.push('/vip')">
+                                <CrownOutlined />
+                                {{ isVip ? '查看会员权益' : '升级永久会员' }}
+                            </a-menu-item>
+                            <a-menu-divider />
+                            <a-menu-item key="logout" danger @click="doLogout">
+                                <LogoutOutlined />
+                                退出登录
+                            </a-menu-item>
+                        </a-menu>
+                    </template>
+                </a-dropdown>
 
-            <!-- 右侧：用户操作区域 -->
-            <a-col>
-                <div class="user-login-status">
-                    <div v-if="loginUserStore.loginUser.id">
-                        <a-dropdown>
-                            <a-space>
-                                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
-                                {{ loginUserStore.loginUser.userName ?? 'user' }}
-                            </a-space>
+                <a-button v-else type="primary" @click="goToLogin">登录</a-button>
 
-                            <template #overlay>
-                                <a-menu>
-                                    <a-menu-item @click="doLogout">
-                                        <LogoutOutlined />
-                                        退出登录
-                                    </a-menu-item>
-                                </a-menu>
-                            </template>
-                        </a-dropdown>
-                    </div>
-                    <div v-else>
-                        <a-button type="primary" href="/user/login">登录</a-button>
-                    </div>
-                </div>
-            </a-col>
-        </a-row>
+                <a-button class="mobile-menu-button" type="text" aria-label="打开导航" @click="drawerOpen = true">
+                    <MenuOutlined />
+                </a-button>
+            </div>
+        </div>
+
+        <a-drawer v-model:open="drawerOpen" title="导航" placement="right" :width="280">
+            <a-menu mode="inline" :selected-keys="selectedKeys" :items="menuItems" @click="handleMobileMenuClick" />
+        </a-drawer>
     </a-layout-header>
 </template>
 
 <script setup lang="ts">
 import { computed, h, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { type MenuProps, message } from 'ant-design-vue'
-import { useLoginUserStore } from '@/stores/loginUser.ts'
-import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined, HistoryOutlined } from '@ant-design/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import type { MenuProps } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
+import {
+    CrownOutlined,
+    DownOutlined,
+    EditOutlined,
+    FileTextOutlined,
+    HomeOutlined,
+    LogoutOutlined,
+    MenuOutlined,
+    TeamOutlined,
+} from '@ant-design/icons-vue'
+import { userLogout } from '@/api/userController'
+import { hasVipAccess, USER_ROLE_ADMIN } from '@/constant/user'
+import { useLoginUserStore } from '@/stores/loginUser'
 
-const loginUserStore = useLoginUserStore()
+const route = useRoute()
 const router = useRouter()
-// 当前选中菜单
-const selectedKeys = ref<string[]>(['/'])
-// 监听路由变化，更新当前选中菜单
-router.afterEach((to, from, next) => {
-    selectedKeys.value = [to.path]
+const loginUserStore = useLoginUserStore()
+const drawerOpen = ref(false)
+
+const isVip = computed(() => hasVipAccess(loginUserStore.loginUser.userRole))
+const userInitial = computed(() => (loginUserStore.loginUser.userName || 'U').slice(0, 1).toUpperCase())
+const selectedKeys = computed(() => {
+    if (route.path.startsWith('/article/')) return ['/article/list']
+    return [route.path]
 })
 
-// 菜单配置项
-const originItems = [
-    {
-        key: '/',
-        icon: () => h(HomeOutlined),
-        label: '主页',
-        title: '主页',
-    },
-    {
-        key: '/admin/userManager',
-        label: '用户管理',
-        title: '用户管理',
-    },
-    {
-        key: '/create',
-        label: '创作',
-        title: '创作',
-    },
-    {
-        key: '/article/list',
-        label: '文章列表',
-        title: '文章列表',
-    },
-]   
+const baseMenuItems: NonNullable<MenuProps['items']> = [
+    { key: '/', icon: () => h(HomeOutlined), label: '首页' },
+    { key: '/create', icon: () => h(EditOutlined), label: '开始创作' },
+    { key: '/article/list', icon: () => h(FileTextOutlined), label: '我的文章' },
+    { key: '/admin/userManager', icon: () => h(TeamOutlined), label: '用户管理' },
+]
 
-// 过滤菜单项
-const filterMenus = (menus = [] as MenuProps['items']) => {
-    return menus?.filter((menu) => {
-        const menuKey = menu?.key as string
-        if (menuKey?.startsWith('/admin')) {
-            const loginUser = loginUserStore.loginUser
-            if (!loginUser || loginUser.userRole !== 'admin') {
-                return false
-            }
-        }
-        return true
-    })
+const menuItems = computed<MenuProps['items']>(() =>
+    baseMenuItems.filter((item) => item?.key !== '/admin/userManager' || loginUserStore.loginUser.userRole === USER_ROLE_ADMIN),
+)
+
+const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
+    void router.push(String(key))
 }
 
-// 展示在菜单的路由数组
-const menuItems = computed<MenuProps['items']>(() => filterMenus(originItems))
-
-// 处理菜单点击
-const handleMenuClick: MenuProps['onClick'] = (e) => {
-    const key = e.key as string
-    selectedKeys.value = [key]
-    // 跳转到对应页面
-    if (key.startsWith('/')) {
-        router.push(key)
-    }
+const handleMobileMenuClick: MenuProps['onClick'] = (info) => {
+    drawerOpen.value = false
+    handleMenuClick?.(info)
 }
 
-// 退出登录
+const goToLogin = () => {
+    void router.push({ path: '/user/login', query: { redirect: route.fullPath } })
+}
+
 const doLogout = async () => {
-    const res = await userLogout()
-    if (res.data.code === 200) {
-        loginUserStore.setLoginUser({
-            userName: '未登录',
-        })
-        message.success('退出登录成功')
+    try {
+        const res = await userLogout()
+        if (res.data.code !== 200) {
+            message.error(res.data.msg || '退出登录失败')
+            return
+        }
+        loginUserStore.setLoginUser({ userName: '未登录' })
+        message.success('已退出登录')
         await router.push('/user/login')
-    } else {
-        message.error('退出登录失败，' + res.data.msg)
+    } catch {
+        message.error('退出登录失败，请稍后重试')
     }
 }
 </script>
 
 <style scoped>
-.header {
-    background: #fff;
+.global-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 64px;
     padding: 0 24px;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid var(--color-border);
+    backdrop-filter: blur(12px);
 }
 
-.header-left {
+.header-inner {
     display: flex;
     align-items: center;
+    width: min(1200px, 100%);
+    height: 100%;
+    margin: 0 auto;
+}
+
+.brand {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10px;
+    color: var(--color-text);
+}
+
+.brand-mark {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--color-primary);
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.brand-name {
+    font-size: 17px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.desktop-nav {
+    flex: 1;
+    min-width: 0;
+    margin-left: 36px;
+    border-bottom: 0;
+    background: transparent;
+}
+
+.header-actions,
+.user-trigger,
+.vip-link {
+    display: flex;
+    align-items: center;
+}
+
+.header-actions {
     gap: 12px;
 }
 
-.logo {
-    height: 48px;
-    width: 48px;
+.vip-link {
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid #d3a742;
+    border-radius: 6px;
+    color: #725817;
+    background: #fffaf0;
+    font-size: 13px;
+    font-weight: 600;
 }
 
-.site-title {
-    margin: 0;
-    font-size: 18px;
-    color: #1890ff;
+.user-trigger {
+    gap: 8px;
+    padding: 3px 4px;
+    border: 0;
+    color: var(--color-text);
+    background: transparent;
+    cursor: pointer;
 }
 
-.ant-menu-horizontal {
-    border-bottom: none !important;
+.user-name {
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.down-icon {
+    color: var(--color-text-muted);
+    font-size: 11px;
+}
+
+.mobile-menu-button {
+    display: none;
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+}
+
+@media (max-width: 820px) {
+    .global-header {
+        padding: 0 16px;
+    }
+
+    .desktop-nav {
+        display: none;
+    }
+
+    .header-actions {
+        margin-left: auto;
+    }
+
+    .mobile-menu-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .user-name,
+    .down-icon {
+        display: none;
+    }
+}
+
+@media (max-width: 520px) {
+    .brand-name {
+        display: none;
+    }
+
+    .vip-link span {
+        display: none;
+    }
+
+    .vip-link {
+        width: 36px;
+        justify-content: center;
+        padding: 0;
+    }
 }
 </style>

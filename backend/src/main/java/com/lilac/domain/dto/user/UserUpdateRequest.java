@@ -43,7 +43,7 @@ public class UserUpdateRequest implements Serializable {
     private String userRole;
 
     /**
-     * Remaining article generation quota.
+     * 额度
      */
     private Integer quota;
 }
