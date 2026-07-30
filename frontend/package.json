@@ -12,11 +12,13 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@types/sortablejs": "^1.15.9",
     "@umijs/openapi": "^1.14.1",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.18.1",
     "marked": "^18.0.7",
     "pinia": "^3.0.4",
+    "sortablejs": "^1.15.7",
     "tslib": "^2.8.1",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"

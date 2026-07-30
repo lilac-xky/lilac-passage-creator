@@ -2,8 +2,7 @@ package com.lilac.controller;
 
 import com.lilac.annotation.AuthCheck;
 import com.lilac.common.DeleteRequest;
-import com.lilac.domain.dto.article.ArticleCreateRequest;
-import com.lilac.domain.dto.article.ArticleQueryRequest;
+import com.lilac.domain.dto.article.*;
 import com.lilac.domain.entity.User;
 import com.lilac.domain.result.Result;
 import com.lilac.domain.vo.ArticleVO;
@@ -20,6 +19,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
 
 /**
  * 文章接口
@@ -46,17 +47,90 @@ public class ArticleController {
         ThrowUtils.throwIf(request == null, HttpsCodeEnum.PARAMS_ERROR);
         ThrowUtils.throwIf(request.getTopic() == null || request.getTopic().trim().isEmpty(),
                 HttpsCodeEnum.PARAMS_ERROR, "选题不能为空");
+        // 校验风格参数（允许为空）
         ThrowUtils.throwIf(!ArticleStyleEnum.isValid(request.getStyle()), HttpsCodeEnum.PARAMS_ERROR, "无效的文章风格");
 
         User loginUser = userService.getLoginUser(httpServletRequest);
-        // 创建文章任务
+        // 检查并消耗配额 + 创建文章任务（在同一事务中）
         String taskId = articleService.createArticleTaskWithQuotaCheck(
-                request.getTopic(), request.getStyle(), request.getEnabledImageMethods(), loginUser);
-        // 在异步任务启动前注册 Emitter，避免前端建立 SSE 连接前产生的事件丢失
-        sseEmitterManager.createEmitter(taskId);
-        // 异步执行文章生成
-        articleAsyncService.executeArticleGeneration(taskId, request.getTopic(), request.getStyle(), request.getEnabledImageMethods());
+                request.getTopic(),
+                request.getStyle(),
+                request.getEnabledImageMethods(),
+                loginUser
+        );
+
+        // 异步执行阶段1：生成标题方案
+        articleAsyncService.executePhase1(taskId, request.getTopic(), request.getStyle());
         return Result.success(taskId);
+    }
+
+    /**
+     * 确认标题并输入补充描述
+     */
+    @PostMapping("/confirm-title")
+    public Result<Void> confirmTitle(@RequestBody ArticleConfirmTitleRequest request, HttpServletRequest httpServletRequest) {
+        ThrowUtils.throwIf(request == null, HttpsCodeEnum.PARAMS_ERROR);
+        ThrowUtils.throwIf(request.getTaskId() == null || request.getTaskId().trim().isEmpty(),
+                HttpsCodeEnum.PARAMS_ERROR, "任务ID不能为空");
+        ThrowUtils.throwIf(request.getSelectedMainTitle() == null || request.getSelectedMainTitle().trim().isEmpty(),
+                HttpsCodeEnum.PARAMS_ERROR, "主标题不能为空");
+        ThrowUtils.throwIf(request.getSelectedSubTitle() == null || request.getSelectedSubTitle().trim().isEmpty(),
+                HttpsCodeEnum.PARAMS_ERROR, "副标题不能为空");
+
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        // 确认标题
+        articleService.confirmTitle(request.getTaskId(),
+                request.getSelectedMainTitle(),
+                request.getSelectedSubTitle(),
+                request.getUserDescription(),
+                loginUser
+        );
+
+        // 异步执行阶段2：生成大纲
+        articleAsyncService.executePhase2(request.getTaskId());
+        return Result.success(null);
+    }
+
+    /**
+     * 确认大纲
+     */
+    @PostMapping("/confirm-outline")
+    public Result<Void> confirmOutline(@RequestBody ArticleConfirmOutlineRequest request, HttpServletRequest httpServletRequest) {
+        ThrowUtils.throwIf(request == null, HttpsCodeEnum.PARAMS_ERROR);
+        ThrowUtils.throwIf(request.getTaskId() == null || request.getTaskId().trim().isEmpty(),
+                HttpsCodeEnum.PARAMS_ERROR, "任务ID不能为空");
+        ThrowUtils.throwIf(request.getOutline() == null || request.getOutline().isEmpty(),
+                HttpsCodeEnum.PARAMS_ERROR, "大纲不能为空");
+
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        // 确认大纲
+        articleService.confirmOutline(request.getTaskId(), request.getOutline(), loginUser);
+
+        // 异步执行阶段3：生成正文+配图
+        articleAsyncService.executePhase3(request.getTaskId());
+        return Result.success(null);
+    }
+
+    /**
+     * AI 修改大纲
+     */
+    @PostMapping("/ai-modify-outline")
+    public Result<List<ArticleState.OutlineSection>> aiModifyOutline(@RequestBody ArticleAiModifyOutlineRequest request,
+                                                                     HttpServletRequest httpServletRequest) {
+        ThrowUtils.throwIf(request == null, HttpsCodeEnum.PARAMS_ERROR);
+        ThrowUtils.throwIf(request.getTaskId() == null || request.getTaskId().trim().isEmpty(),
+                HttpsCodeEnum.PARAMS_ERROR, "任务ID不能为空");
+        ThrowUtils.throwIf(request.getModifySuggestion() == null || request.getModifySuggestion().trim().isEmpty(),
+                HttpsCodeEnum.PARAMS_ERROR, "修改建议不能为空");
+
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        // AI 修改大纲
+        List<ArticleState.OutlineSection> modifiedOutline = articleService.aiModifyOutline(
+                request.getTaskId(),
+                request.getModifySuggestion(),
+                loginUser
+        );
+        return Result.success(modifiedOutline);
     }
 
     /**

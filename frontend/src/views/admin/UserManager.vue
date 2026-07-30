@@ -128,7 +128,7 @@ const fetchData = async () => {
         const res = await listUserVoByPage(searchParams)
         if (res.data.code === 200 && res.data.data) {
             data.value = res.data.data.records || []
-            pagination.value.total = res.data.data.totalRow || 0
+            pagination.value.total = Number(res.data.data.totalRow) || 0
             pagination.value.current = searchParams.current || 1
             pagination.value.pageSize = searchParams.pageSize || 10
         } else {

@@ -9,7 +9,7 @@ let firstFetchLoginUser = true
 /**
  * 全局权限校验
  */
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
   const loginUserStore = useLoginUserStore()
   let loginUser = loginUserStore.loginUser
 
@@ -25,16 +25,13 @@ router.beforeEach(async (to, from, next) => {
     // 用户未登录（无 userRole 或为空）
     if (!loginUser || !loginUser.userRole) {
       message.warning('请先登录');
-      next(`/user/login?redirect=${to.fullPath}`);
-      return;
+      return `/user/login?redirect=${to.fullPath}`;
     }
     // 如果需要管理员权限，检查角色
     if (to.meta.requiresAdmin && loginUser.userRole !== USER_ROLE_ADMIN) {
       message.error('没有权限');
-      next('/');
-      return;
+      return '/';
     }
   }
   
-  next()
 })

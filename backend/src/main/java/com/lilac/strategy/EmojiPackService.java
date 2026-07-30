@@ -98,9 +98,7 @@ public class EmojiPackService implements ImageSearchService {
     private String buildSearchUrl(String searchText) {
         String encodedText = URLEncoder.encode(searchText, StandardCharsets.UTF_8);
         // 必须添加 mmasync=1 参数
-        return String.format("%s?q=%s&mmasync=1", 
-                emojiPackConfig.getSearchUrl(), 
-                encodedText);
+        return String.format("%s?q=%s&mmasync=1", emojiPackConfig.getSearchUrl(), encodedText);
     }
 
     /**

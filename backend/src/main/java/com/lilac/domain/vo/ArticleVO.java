@@ -88,6 +88,31 @@ public class ArticleVO implements Serializable {
     private String errorMessage;
 
     /**
+     * 文章风格
+     */
+    private String style;
+
+    /**
+     * 用户补充描述
+     */
+    private String userDescription;
+
+    /**
+     * 允许使用的配图方式
+     */
+    private List<String> enabledImageMethods;
+
+    /**
+     * 标题方案
+     */
+    private List<ArticleState.TitleOption> titleOptions;
+
+    /**
+     * 当前生成阶段
+     */
+    private String phase;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;
@@ -117,6 +142,8 @@ public class ArticleVO implements Serializable {
         BeanUtils.copyProperties(article, articleVO);
         articleVO.setOutline(parseList(article.getOutline(), new TypeToken<List<ArticleState.OutlineSection>>() {}));
         articleVO.setImages(parseList(article.getImages(), new TypeToken<List<ArticleState.ImageResult>>() {}));
+        articleVO.setEnabledImageMethods(parseList(article.getEnabledImageMethods(), new TypeToken<List<String>>() {}));
+        articleVO.setTitleOptions(parseList(article.getTitleOptions(), new TypeToken<List<ArticleState.TitleOption>>() {}));
         return articleVO;
      }
 

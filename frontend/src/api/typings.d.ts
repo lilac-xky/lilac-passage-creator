@@ -1,4 +1,29 @@
 declare namespace API {
+  type ArticleAiModifyOutlineRequest = {
+    /** 任务ID */
+    taskId?: string;
+    /** 用户的修改建议 */
+    modifySuggestion?: string;
+  };
+
+  type ArticleConfirmOutlineRequest = {
+    /** 任务ID */
+    taskId?: string;
+    /** 用户编辑后的大纲 */
+    outline?: OutlineSection[];
+  };
+
+  type ArticleConfirmTitleRequest = {
+    /** 任务ID */
+    taskId?: string;
+    /** 选中的主标题 */
+    selectedMainTitle?: string;
+    /** 选中的副标题 */
+    selectedSubTitle?: string;
+    /** 用户补充描述（可选） */
+    userDescription?: string;
+  };
+
   type ArticleCreateRequest = {
     /** 选题 */
     topic?: string;
@@ -51,6 +76,16 @@ declare namespace API {
     status?: string;
     /** 错误信息 */
     errorMessage?: string;
+    /** 文章风格 */
+    style?: string;
+    /** 用户补充描述 */
+    userDescription?: string;
+    /** 允许使用的配图方式 */
+    enabledImageMethods?: string[];
+    /** 标题方案 */
+    titleOptions?: TitleOption[];
+    /** 当前生成阶段 */
+    phase?: string;
     /** 创建时间 */
     createTime?: string;
     /** 完成时间 */
@@ -166,6 +201,12 @@ declare namespace API {
     data?: boolean;
   };
 
+  type ResultListOutlineSection = {
+    code?: number;
+    msg?: string;
+    data?: OutlineSection[];
+  };
+
   type ResultLoginUserVO = {
     code?: number;
     msg?: string;
@@ -194,6 +235,12 @@ declare namespace API {
     code?: number;
     msg?: string;
     data?: string;
+  };
+
+  type ResultVoid = {
+    code?: number;
+    msg?: string;
+    data?: null;
   };
 
   type Runnable = {};
@@ -247,6 +294,11 @@ unmodifiable sentinel list.  When a serialized Throwable is
 read in, if the{@code suppressedExceptions} field points to a
 zero-element list, the field is reset to the sentinel value. */
     suppressedExceptions?: Throwable[];
+  };
+
+  type TitleOption = {
+    mainTitle?: string;
+    subTitle?: string;
   };
 
   type UserAddRequest = {

@@ -103,52 +103,62 @@
 
                 <!-- 创作进行中 -->
                 <div v-if="isCreating && !isCompleted" class="creating-state">
-                    <!-- 标题预览 -->
-                    <div v-if="article.mainTitle" class="preview-header">
-                        <h1 class="article-title">{{ article.mainTitle }}</h1>
-                        <p class="article-subtitle">{{ article.subTitle }}</p>
-                    </div>
+                    <TitleSelectingStage v-if="currentPhase === 'TITLE_SELECTING'" :title-options="titleOptions"
+                        :loading="confirmLoading" @confirm="handleConfirmTitle" />
 
-                    <!-- 大纲预览（流式解析展示） -->
-                    <div v-if="outlineRaw" class="outline-preview">
-                        <div class="section-label">
-                            <BulbOutlined />
-                            <span>文章大纲</span>
-                            <span v-if="isOutlineStreaming" class="typing-cursor">|</span>
-                        </div>
+                    <OutlineEditingStage v-else-if="currentPhase === 'OUTLINE_EDITING'" :outline="outline"
+                        :loading="confirmLoading" :task-id="taskId" @confirm="handleConfirmOutline" />
 
-                        <div class="outline-list">
-                            <div v-for="item in parsedOutline" :key="item.section" class="outline-item">
-                                <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
-                                <ul class="outline-points">
-                                    <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 正文预览（流式输出） -->
-                    <div v-if="article.content" class="content-preview">
-                        <div v-html="markdownToHtml(article.content)" class="markdown-body"></div>
-                        <span v-if="isStreaming" class="typing-cursor">|</span>
-                    </div>
-
-                    <!-- 配图进度 -->
-                    <div v-if="currentStep === 4 && imageProgress > 0" class="image-progress-box">
+                    <div v-else-if="currentPhase === 'IMAGE_ANALYZING' || currentPhase === 'IMAGE_GENERATING'"
+                        class="image-progress-box image-progress-stage">
                         <div class="progress-header">
                             <PictureOutlined />
-                            <span>正在生成配图</span>
+                            <span>{{ currentPhase === 'IMAGE_ANALYZING' ? '正在分析配图' : '正在生成配图' }}</span>
                         </div>
                         <a-progress :percent="imageProgress" status="active"
                             :stroke-color="{ from: 'var(--primary-color)', to: 'var(--primary-color-hover)' }" />
-                        <p class="progress-hint">{{ imageCount }}/{{ totalImages }} 张图片已完成</p>
+                        <p class="progress-hint">
+                            {{ currentPhase === 'IMAGE_ANALYZING' ? '正在分析正文中的配图位置和内容' : `${imageCount}/${totalImages} 张图片已完成` }}
+                        </p>
                     </div>
 
-                    <!-- 加载占位 -->
-                    <div v-if="currentStep === 0 && !article.mainTitle" class="loading-placeholder">
-                        <a-spin size="large" />
-                        <p>AI 正在构思标题...</p>
-                    </div>
+                    <template v-else>
+                        <!-- 标题预览 -->
+                        <div v-if="article.mainTitle" class="preview-header">
+                            <h1 class="article-title">{{ article.mainTitle }}</h1>
+                            <p class="article-subtitle">{{ article.subTitle }}</p>
+                        </div>
+
+                        <!-- 大纲预览（流式解析展示） -->
+                        <div v-if="outlineRaw" class="outline-preview">
+                            <div class="section-label">
+                                <BulbOutlined />
+                                <span>文章大纲</span>
+                                <span v-if="isOutlineStreaming" class="typing-cursor">|</span>
+                            </div>
+
+                            <div class="outline-list">
+                                <div v-for="item in parsedOutline" :key="item.section" class="outline-item">
+                                    <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
+                                    <ul class="outline-points">
+                                        <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 正文预览（流式输出） -->
+                        <div v-if="article.content" class="content-preview">
+                            <div v-html="markdownToHtml(article.content)" class="markdown-body"></div>
+                            <span v-if="isStreaming" class="typing-cursor">|</span>
+                        </div>
+
+                        <!-- 加载占位 -->
+                        <div v-if="currentStep === 0 && !article.mainTitle" class="loading-placeholder">
+                            <a-spin size="large" />
+                            <p>AI 正在构思标题...</p>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- 创作完成 -->
@@ -310,8 +320,10 @@ import {
     BarChartOutlined,
     StarOutlined,
 } from '@ant-design/icons-vue'
-import { createArticle, getArticle } from '@/api/articleController'
+import { confirmOutline, confirmTitle, createArticle, getArticle } from '@/api/articleController'
 import { closeSSE, connectSSE, type SSEMessage } from '@/utils/sse'
+import OutlineEditingStage from './components/OutlineEditingStage.vue'
+import TitleSelectingStage from './components/TitleSelectingStage.vue'
 import { message } from 'ant-design-vue'
 import { marked } from 'marked'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -319,6 +331,18 @@ import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
+
+// 阶段状态
+const currentPhase = ref<string>('INPUT')  // INPUT, TITLE_SELECTING, OUTLINE_EDITING, CONTENT_GENERATING, COMPLETED
+
+// 标题方案
+const titleOptions = ref<Array<{ mainTitle: string, subTitle: string }>>([])
+
+// 大纲数据
+const outline = ref<Array<{ section: number, title: string, points: string[] }>>([])
+
+// 确认操作的 loading
+const confirmLoading = ref(false)
 
 // 智能体步骤
 const agentSteps = [
@@ -385,6 +409,7 @@ const persistCreationSession = () => {
         isCreating: isCreating.value,
         isCompleted: isCompleted.value,
         currentStep: currentStep.value,
+        currentPhase: currentPhase.value,
         outlineRaw: outlineRaw.value,
         imageCount: imageCount.value,
         totalImages: totalImages.value,
@@ -437,6 +462,12 @@ const scrollToBottom = () => {
     })
 }
 
+const scrollToTop = () => {
+    nextTick(() => {
+        mainContentRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+}
+
 const startCreate = async () => {
     if (!topic.value.trim()) {
         message.warning('请输入选题')
@@ -444,6 +475,7 @@ const startCreate = async () => {
     }
 
     isCreating.value = true
+    currentPhase.value = 'TITLE_GENERATING'
     currentStep.value = 0
     errorVisible.value = false
     errorMessage.value = ''
@@ -468,10 +500,15 @@ const startCreate = async () => {
 
 const handleSSEMessage = (msg: SSEMessage) => {
     switch (msg.type) {
+        case 'TITLES_GENERATED':
+            titleOptions.value = msg.titleOptions || []
+            currentPhase.value = 'TITLE_SELECTING'
+            break
         case 'AGENT1_COMPLETE':
-            currentStep.value = 1
-            article.value.mainTitle = msg.title?.mainTitle
-            article.value.subTitle = msg.title?.subTitle
+            if (msg.title) {
+                article.value.mainTitle = msg.title.mainTitle
+                article.value.subTitle = msg.title.subTitle
+            }
             break
         case 'AGENT2_STREAMING':
             isOutlineStreaming.value = true
@@ -480,9 +517,16 @@ const handleSSEMessage = (msg: SSEMessage) => {
             break
         case 'AGENT2_COMPLETE':
             isOutlineStreaming.value = false
-            currentStep.value = 2
+            if (msg.outline) outline.value = msg.outline
+            break
+        case 'OUTLINE_GENERATED':
+            outline.value = msg.outline || []
+            outlineRaw.value = JSON.stringify({ sections: outline.value })
+            currentPhase.value = 'OUTLINE_EDITING'
+            currentStep.value = 1
             break
         case 'AGENT3_STREAMING':
+            currentPhase.value = 'CONTENT_GENERATING'
             isStreaming.value = true
             article.value.content += msg.content || ''
             scrollToBottom()
@@ -490,10 +534,16 @@ const handleSSEMessage = (msg: SSEMessage) => {
         case 'AGENT3_COMPLETE':
             isStreaming.value = false
             currentStep.value = 3
+            currentPhase.value = 'IMAGE_ANALYZING'
+            imageCount.value = 0
+            imageProgress.value = 0
+            scrollToTop()
             break
         case 'AGENT4_COMPLETE':
             currentStep.value = 4
-            totalImages.value = msg.imageRequirements?.length || 5
+            currentPhase.value = 'IMAGE_GENERATING'
+            totalImages.value = msg.imageRequirements?.length || 0
+            imageProgress.value = totalImages.value === 0 ? 100 : 0
             break
         case 'IMAGE_COMPLETE':
             imageCount.value++
@@ -510,6 +560,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
         case 'ALL_COMPLETE':
             currentStep.value = 6
             isCompleted.value = true
+            currentPhase.value = 'COMPLETED'
             message.success('文章创作完成!')
             break
         case 'ERROR':
@@ -519,6 +570,40 @@ const handleSSEMessage = (msg: SSEMessage) => {
             break
     }
     persistCreationSession()
+}
+
+const handleConfirmTitle = async (data: { mainTitle: string; subTitle: string; userDescription: string }) => {
+    confirmLoading.value = true
+    try {
+        await confirmTitle({
+            taskId: taskId.value,
+            selectedMainTitle: data.mainTitle,
+            selectedSubTitle: data.subTitle,
+            userDescription: data.userDescription || undefined,
+        })
+        article.value.mainTitle = data.mainTitle
+        article.value.subTitle = data.subTitle
+        currentPhase.value = 'OUTLINE_GENERATING'
+        currentStep.value = 1
+    } catch (error) {
+        message.error((error as Error).message || '确认标题失败')
+    } finally {
+        confirmLoading.value = false
+    }
+}
+
+const handleConfirmOutline = async (outlineData: API.OutlineSection[]) => {
+    confirmLoading.value = true
+    try {
+        await confirmOutline({ taskId: taskId.value, outline: outlineData })
+        outlineRaw.value = JSON.stringify({ sections: outlineData })
+        currentPhase.value = 'CONTENT_GENERATING'
+        currentStep.value = 2
+    } catch (error) {
+        message.error((error as Error).message || '确认大纲失败')
+    } finally {
+        confirmLoading.value = false
+    }
 }
 
 const handleSSEError = (error: Event) => {
@@ -568,6 +653,10 @@ const resetCreate = () => {
     isStreaming.value = false
     isOutlineStreaming.value = false
     currentStep.value = 0
+    currentPhase.value = 'INPUT'
+    titleOptions.value = []
+    outline.value = []
+    confirmLoading.value = false
     imageCount.value = 0
     imageProgress.value = 0
     outlineRaw.value = ''
@@ -592,6 +681,7 @@ const restoreCreationSession = async () => {
         selectedStyle.value = state.selectedStyle || ''
         selectedImageMethods.value = state.selectedImageMethods || []
         currentStep.value = state.currentStep || 0
+        currentPhase.value = state.currentPhase || 'CONTENT_GENERATING'
         outlineRaw.value = state.outlineRaw || ''
         imageCount.value = state.imageCount || 0
         totalImages.value = state.totalImages || 5
@@ -645,6 +735,45 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* 阶段切换过渡动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translateX(30px);
+}
+
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
+/* 加载阶段样式 */
+.loading-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 40px;
+    text-align: center;
+
+    h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--color-text);
+        margin: 24px 0 8px;
+    }
+
+    p {
+        font-size: 14px;
+        color: var(--color-text-secondary);
+        margin: 0;
+    }
+}
+
 .article-create-page {
     --primary-color: #22C55E;
     --primary-color-hover: #16A34A;
@@ -967,6 +1096,14 @@ onBeforeUnmount(() => {
     border-radius: 12px;
     padding: 40px 30px;
     margin-top: 32px;
+}
+
+.image-progress-stage {
+    margin-top: 0;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .progress-header {

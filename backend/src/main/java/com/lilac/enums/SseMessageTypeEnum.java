@@ -11,7 +11,7 @@ public enum SseMessageTypeEnum {
     /**
      * 智能体1完成（生成标题）
      */
-    AGENT1_COMPLETE("AGENT1_COMPLETE", "标题生成完成"),
+    AGENT1_COMPLETE("AGENT1_COMPLETE", "标题方案生成完成"),
 
     /**
      * 智能体2流式输出（大纲）
@@ -57,6 +57,16 @@ public enum SseMessageTypeEnum {
      * 全部完成
      */
     ALL_COMPLETE("ALL_COMPLETE", "全部完成"),
+
+    /**
+     * 标题方案生成完成（等待用户选择）
+     */
+    TITLES_GENERATED("TITLES_GENERATED", "标题方案已生成"),
+
+    /**
+     * 大纲生成完成（等待用户编辑）
+     */
+    OUTLINE_GENERATED("OUTLINE_GENERATED", "大纲已生成"),
 
     /**
      * 错误

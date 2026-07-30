@@ -90,10 +90,7 @@ public class IconifyService implements ImageSearchService {
      */
     private String buildSearchUrl(String keywords) {
         String encodedKeywords = URLEncoder.encode(keywords, StandardCharsets.UTF_8);
-        return String.format("%s/search?query=%s&limit=%d",
-                iconifyConfig.getApiUrl(),
-                encodedKeywords,
-                iconifyConfig.getSearchLimit());
+        return String.format("%s/search?query=%s&limit=%d", iconifyConfig.getApiUrl(), encodedKeywords, iconifyConfig.getSearchLimit());
     }
 
     /**
