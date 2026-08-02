@@ -158,9 +158,18 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         article.setContent(state.getContent());
         article.setFullContent(state.getFullContent());
 
+        // Graph tasks may span a DevTools restart. Rebuild DTOs with the current
+        // class loader before accessing list elements or persisting them.
+        List<ArticleState.ImageResult> images = state.getImages() == null
+                ? null
+                : GsonUtils.fromJson(
+                        GsonUtils.toJson(state.getImages()),
+                        new TypeToken<List<ArticleState.ImageResult>>() {});
+        state.setImages(images);
+
         // 保存封面图 URL（从 images 列表中提取 position=1 的 URL）
-        if (state.getImages() != null && !state.getImages().isEmpty()) {
-            ArticleState.ImageResult cover = state.getImages().stream()
+        if (images != null && !images.isEmpty()) {
+            ArticleState.ImageResult cover = images.stream()
                     .filter(img -> img.getPosition() != null && img.getPosition() == 1)
                     .findFirst()
                     .orElse(null);
@@ -168,7 +177,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                 article.setCoverImage(cover.getUrl());
             }
         }
-        article.setImages(GsonUtils.toJson(state.getImages()));
+        article.setImages(GsonUtils.toJson(images));
         article.setCompletedTime(LocalDateTime.now());
         this.updateById(article);
         log.info("文章保存成功, taskId={}", taskId);
