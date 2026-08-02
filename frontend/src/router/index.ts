@@ -50,6 +50,15 @@ const router = createRouter({
       name: '会员购买',
       component: () => import('@/views/Vip.vue'),
     },
+    {
+      path: '/admin/statistics',
+      name: '数据分析',
+      component: () => import('@/views/admin/Statistics.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresAdmin: true,
+      }
+    }
   ],
 })
 

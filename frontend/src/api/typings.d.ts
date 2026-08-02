@@ -1,4 +1,50 @@
 declare namespace API {
+  type AgentExecutionStats = {
+    /** 任务ID */
+    taskId?: string;
+    /** 总耗时（毫秒） */
+    totalDurationMs?: number;
+    /** 智能体数量 */
+    agentCount?: number;
+    /** 各智能体耗时（key: agentName, value: durationMs） */
+    agentDurations?: MapInteger;
+    /** 总体状态：SUCCESS（全部成功）、FAILED（存在失败）、RUNNING（执行中） */
+    overallStatus?: string;
+    /** 详细日志列表 */
+    logs?: AgentLog[];
+  };
+
+  type AgentLog = {
+    /** id */
+    id?: number;
+    /** 任务ID */
+    taskId?: string;
+    /** 智能体名称 */
+    agentName?: string;
+    /** 开始时间 */
+    startTime?: string;
+    /** 结束时间 */
+    endTime?: string;
+    /** 耗时（毫秒） */
+    durationMs?: number;
+    /** 状态：SUCCESS/FAILED */
+    status?: string;
+    /** 错误信息 */
+    errorMessage?: string;
+    /** 使用的Prompt */
+    prompt?: string;
+    /** 输入数据（JSON格式） */
+    inputData?: string;
+    /** 输出数据（JSON格式） */
+    outputData?: string;
+    /** 创建时间 */
+    createTime?: string;
+    /** 更新时间 */
+    updateTime?: string;
+    /** 是否删除 */
+    isDelete?: number;
+  };
+
   type ArticleAiModifyOutlineRequest = {
     /** 任务ID */
     taskId?: string;
@@ -114,6 +160,10 @@ declare namespace API {
     taskId: string;
   };
 
+  type getExecutionLogsParams = {
+    taskId: string;
+  };
+
   type getProgressParams = {
     taskId: string;
   };
@@ -152,6 +202,10 @@ declare namespace API {
     createTime?: string;
     /** 更新时间 */
     updateTime?: string;
+  };
+
+  type MapInteger = {
+    key?: number;
   };
 
   type MapString = {
@@ -224,6 +278,12 @@ declare namespace API {
     reason?: string;
   };
 
+  type ResultAgentExecutionStats = {
+    code?: number;
+    msg?: string;
+    data?: AgentExecutionStats;
+  };
+
   type ResultArticleVO = {
     code?: number;
     msg?: string;
@@ -272,6 +332,12 @@ declare namespace API {
     data?: PageLoginUserVO;
   };
 
+  type ResultStatisticsVO = {
+    code?: number;
+    msg?: string;
+    data?: StatisticsVO;
+  };
+
   type ResultString = {
     code?: number;
     msg?: string;
@@ -314,6 +380,29 @@ declare namespace API {
     lineNumber?: number;
     /** Control to show full or partial module, package, and class names. */
     format?: number;
+  };
+
+  type StatisticsVO = {
+    /** 今日创作数量 */
+    todayCount?: number;
+    /** 本周创作数量 */
+    weekCount?: number;
+    /** 本月创作数量 */
+    monthCount?: number;
+    /** 总创作数量 */
+    totalCount?: number;
+    /** 成功率（百分比） */
+    successRate?: number;
+    /** 平均耗时（毫秒） */
+    avgDurationMs?: number;
+    /** 活跃用户数（本周） */
+    activeUserCount?: number;
+    /** 总用户数 */
+    totalUserCount?: number;
+    /** VIP 用户数 */
+    vipUserCount?: number;
+    /** 配额总使用量 */
+    quotaUsed?: number;
   };
 
   type Throwable = {

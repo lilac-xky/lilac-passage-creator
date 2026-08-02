@@ -5,10 +5,12 @@ import com.lilac.common.DeleteRequest;
 import com.lilac.domain.dto.article.*;
 import com.lilac.domain.entity.User;
 import com.lilac.domain.result.Result;
+import com.lilac.domain.vo.AgentExecutionStats;
 import com.lilac.domain.vo.ArticleVO;
 import com.lilac.enums.ArticleStyleEnum;
 import com.lilac.enums.HttpsCodeEnum;
 import com.lilac.manager.SseEmitterManager;
+import com.lilac.service.AgentLogService;
 import com.lilac.service.ArticleService;
 import com.lilac.service.UserService;
 import com.lilac.service.ArticleAsyncService;
@@ -38,6 +40,8 @@ public class ArticleController {
     private SseEmitterManager sseEmitterManager;
     @Resource
     private UserService userService;
+    @Resource
+    private AgentLogService agentLogService;
 
     /**
      * 创建文章任务
@@ -181,5 +185,15 @@ public class ArticleController {
         User loginUser = userService.getLoginUser(httpServletRequest);
         boolean result = articleService.deleteArticle(deleteRequest.getId(), loginUser);
         return Result.success(result);
+    }
+
+    /**
+     * 获取任务执行日志
+     */
+    @GetMapping("/execution-logs/{taskId}")
+    public Result<AgentExecutionStats> getExecutionLogs(@PathVariable String taskId) {
+        ThrowUtils.throwIf(taskId == null || taskId.trim().isEmpty(), HttpsCodeEnum.PARAMS_ERROR, "任务ID不能为空");
+        AgentExecutionStats stats = agentLogService.getExecutionStats(taskId);
+        return Result.success(stats);
     }
 }

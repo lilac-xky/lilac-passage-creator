@@ -88,6 +88,7 @@ const baseMenuItems: NonNullable<MenuProps['items']> = [
     { key: '/create', icon: () => h(EditOutlined), label: '开始创作' },
     { key: '/article/list', icon: () => h(FileTextOutlined), label: '我的文章' },
     { key: '/admin/userManager', icon: () => h(TeamOutlined), label: '用户管理' },
+    { key: '/admin/statistics', icon: () => h(FileTextOutlined), label: '数据分析' },
 ]
 
 const menuItems = computed<MenuProps['items']>(() =>

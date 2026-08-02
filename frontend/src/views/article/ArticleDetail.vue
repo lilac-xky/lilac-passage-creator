@@ -29,7 +29,7 @@
                     <div class="article-meta">
                         <span class="status-tag">已完成</span>
                         <span class="create-time">创建于 {{ dayjs(article.createTime).format('YYYY-MM-DD HH:mm:ss')
-                        }}</span>
+                            }}</span>
                     </div>
                 </div>
 
@@ -63,6 +63,68 @@
                 <a-empty description="无法找到该文章" />
             </div>
         </div>
+
+        <!-- 执行日志面板 -->
+        <div v-if="executionStats && executionStats.logs && executionStats.logs.length > 0"
+            class="execution-logs-section">
+            <div class="logs-header" @click="showExecutionLogs = !showExecutionLogs">
+                <h2 class="section-title">
+                    <ClockCircleOutlined class="section-icon" />
+                    执行日志
+                    <a-tag :color="getStatusColor(executionStats.overallStatus ?? '')" class="status-tag-small">
+                        {{ executionStats.overallStatus ?? '' }}
+                    </a-tag>
+                </h2>
+                <ThunderboltOutlined :class="['toggle-icon', { expanded: showExecutionLogs }]" />
+            </div>
+
+            <Transition name="expand">
+                <div v-show="showExecutionLogs" class="logs-content">
+                    <!-- 统计概览 -->
+                    <div class="stats-summary">
+                        <div class="stat-item">
+                            <span class="label">总耗时</span>
+                            <span class="value">{{ executionStats.totalDurationMs ?? 0 }}ms</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">智能体数量</span>
+                            <span class="value">{{ executionStats.agentCount ?? 0 }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">平均耗时</span>
+                            <span class="value">
+                                {{ executionStats.agentCount && executionStats.totalDurationMs ?
+                                    Math.round(executionStats.totalDurationMs / executionStats.agentCount) : 0 }}ms
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 智能体时间线 -->
+                    <div class="agent-timeline">
+                        <div v-for="log in executionStats.logs" :key="log.id"
+                            :class="['timeline-item', log.status?.toLowerCase()]">
+                            <div class="timeline-indicator">
+                                <CheckCircleOutlined v-if="log.status === 'SUCCESS'" class="icon success" />
+                                <CloseCircleOutlined v-else-if="log.status === 'FAILED'" class="icon failed" />
+                                <LoadingOutlined v-else class="icon running" />
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-header">
+                                    <span class="agent-name">{{ getAgentDisplayName(log.agentName ?? '') }}</span>
+                                    <span class="duration">{{ log.durationMs ?? 0 }}ms</span>
+                                </div>
+                                <div class="timeline-time">
+                                    {{ log.startTime ? formatDate(log.startTime) : '' }}
+                                </div>
+                                <div v-if="log.errorMessage" class="error-message">
+                                    <CloseCircleOutlined /> {{ log.errorMessage }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </div>
     </div>
 </template>
 
@@ -70,20 +132,67 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getArticle } from '@/api/articleController'
+import { getArticle, getExecutionLogs } from '@/api/articleController'
 import { marked } from 'marked'
 import dayjs from 'dayjs'
 import {
     ArrowLeftOutlined,
+    CheckCircleOutlined,
+    ClockCircleOutlined,
+    CloseCircleOutlined,
     DownloadOutlined,
+    LoadingOutlined,
+    ThunderboltOutlined,
     UnorderedListOutlined
 } from '@ant-design/icons-vue'
+
+const executionStats = ref<API.AgentExecutionStats | null>(null)
+const logsLoading = ref(false)
+const showExecutionLogs = ref(false)
+
+// 加载执行日志
+const loadExecutionLogs = async (taskId: string) => {
+    logsLoading.value = true
+    try {
+        const res = await getExecutionLogs({ taskId })
+        executionStats.value = res.data.data || null
+    } catch (error) {
+        console.error('加载执行日志失败:', error)
+    } finally {
+        logsLoading.value = false
+    }
+}
+
+// 获取智能体显示名称
+const getAgentDisplayName = (agentName: string) => {
+    const nameMap: Record<string, string> = {
+        'agent1_generate_titles': '生成标题',
+        'agent2_generate_outline': '生成大纲',
+        'agent3_generate_content': '生成正文',
+        'agent4_analyze_image_requirements': '分析配图需求',
+        'agent5_generate_images': '生成配图',
+        'agent6_merge_content': '图文合成',
+        'ai_modify_outline': 'AI修改大纲'
+    }
+    return nameMap[agentName] || agentName
+}
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
 const article = ref<any>(null)
+
+const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+        SUCCESS: 'success',
+        FAILED: 'error',
+        RUNNING: 'processing'
+    }
+    return colors[status.toUpperCase()] || 'default'
+}
+
+const formatDate = (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm:ss')
 
 const loadArticle = async () => {
     const taskId = route.params.taskId as string
@@ -95,7 +204,8 @@ const loadArticle = async () => {
     loading.value = true
     try {
         const res = await getArticle({ taskId })
-        article.value = res.data.data
+        article.value = res.data.data || null
+        await loadExecutionLogs(taskId)
     } catch (error: any) {
         message.error(error.message || '加载失败')
     } finally {
@@ -347,6 +457,193 @@ onMounted(() => {
     box-shadow: var(--shadow-md);
 }
 
+.execution-logs-section {
+    width: min(952px, calc(100% - 48px));
+    margin: 20px auto 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.logs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 24px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.logs-header:hover {
+    background: #f8fbf9;
+}
+
+.logs-header .section-title {
+    margin: 0;
+}
+
+.status-tag-small {
+    margin-left: 4px;
+    font-weight: 500;
+}
+
+.toggle-icon {
+    flex: none;
+    color: var(--color-text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.toggle-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.logs-content {
+    padding: 0 24px 24px;
+    border-top: 1px solid var(--color-border);
+}
+
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    margin: 20px 0 24px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-border);
+}
+
+.stat-item {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 5px;
+    padding: 16px 18px;
+    background: #f8fbf9;
+}
+
+.stat-item .label {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.stat-item .value {
+    overflow-wrap: anywhere;
+    color: var(--color-text);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.agent-timeline {
+    display: grid;
+    gap: 0;
+}
+
+.timeline-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 12px;
+    padding-bottom: 20px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item:not(:last-child)::before {
+    position: absolute;
+    top: 22px;
+    bottom: 0;
+    left: 13px;
+    width: 1px;
+    background: var(--color-border);
+    content: '';
+}
+
+.timeline-indicator {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-surface);
+}
+
+.timeline-indicator .icon {
+    font-size: 18px;
+}
+
+.timeline-indicator .success {
+    color: #16a34a;
+}
+
+.timeline-indicator .failed {
+    color: #dc2626;
+}
+
+.timeline-indicator .running {
+    color: #2563eb;
+}
+
+.timeline-content {
+    min-width: 0;
+    padding: 3px 0 2px;
+}
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.agent-name {
+    overflow-wrap: anywhere;
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.duration,
+.timeline-time {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.duration {
+    flex: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.timeline-time {
+    margin-top: 4px;
+}
+
+.error-message {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    background: #fef2f2;
+    color: #b91c1c;
+    overflow-wrap: anywhere;
+}
+
+.expand-enter-active,
+.expand-leave-active {
+    transition: opacity 0.18s ease;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+    opacity: 0;
+}
+
 @media (max-width: 700px) {
     .detail-header-bg {
         height: 112px;
@@ -381,6 +678,20 @@ onMounted(() => {
 
     .outline-block {
         padding: 18px;
+    }
+
+    .execution-logs-section {
+        width: calc(100% - 32px);
+        margin-top: 16px;
+    }
+
+    .logs-header,
+    .logs-content {
+        padding-inline: 18px;
+    }
+
+    .stats-summary {
+        grid-template-columns: 1fr;
     }
 }
 </style>
