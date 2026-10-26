@@ -133,7 +133,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getArticle, getExecutionLogs } from '@/api/articleController'
-import { marked } from 'marked'
+import { markdownToHtml } from '@/utils/markdown'
 import dayjs from 'dayjs'
 import {
     ArrowLeftOutlined,
@@ -211,10 +211,6 @@ const loadArticle = async () => {
     } finally {
         loading.value = false
     }
-}
-
-const markdownToHtml = (markdown: string) => {
-    return marked(markdown)
 }
 
 const exportMarkdown = () => {

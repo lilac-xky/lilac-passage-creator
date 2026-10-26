@@ -346,10 +346,10 @@ import {
 } from '@ant-design/icons-vue'
 import { confirmOutline, confirmTitle, createArticle, getArticle } from '@/api/articleController'
 import { closeSSE, connectSSE, type SSEMessage } from '@/utils/sse'
+import { markdownToHtml } from '@/utils/markdown'
 import OutlineEditingStage from './components/OutlineEditingStage.vue'
 import TitleSelectingStage from './components/TitleSelectingStage.vue'
 import { message } from 'ant-design-vue'
-import { marked } from 'marked'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { hasVipAccess, USER_ROLE_ADMIN } from '@/constant/user'
@@ -481,10 +481,6 @@ const parsedOutline = computed<OutlineItem[]>(() => {
         }
     }
 })
-
-const markdownToHtml = (markdown: string) => {
-    return marked(markdown)
-}
 
 const scrollToBottom = () => {
     nextTick(() => {
