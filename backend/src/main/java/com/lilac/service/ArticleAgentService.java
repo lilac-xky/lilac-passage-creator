@@ -1,7 +1,6 @@
 package com.lilac.service;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
-import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.lilac.annotation.AgentExecution;
 import com.lilac.constant.PromptConstant;
@@ -368,24 +367,24 @@ public class ArticleAgentService {
     }
 
     /**
-     * 解析 JSON 响应
+     * 解析 JSON 响应（容错：模型可能返回代码围栏或夹杂解释文字）
      */
     private <T> T parseJsonResponse(String content, Class<T> clazz, String name) {
         try {
-            return GsonUtils.fromJson(content, clazz);
-        } catch (JsonSyntaxException e) {
+            return GsonUtils.fromLlmOutput(content, clazz);
+        } catch (GsonUtils.LlmOutputParseException e) {
             log.error("{}解析失败, content={}", name, content, e);
             throw new RuntimeException(name + "解析失败");
         }
     }
 
     /**
-     * 解析 JSON 列表响应
+     * 解析 JSON 列表响应（容错：模型可能返回代码围栏或夹杂解释文字）
      */
     private <T> T parseJsonListResponse(String content, TypeToken<T> typeToken, String name) {
         try {
-            return GsonUtils.fromJson(content, typeToken);
-        } catch (JsonSyntaxException e) {
+            return GsonUtils.fromLlmOutput(content, typeToken);
+        } catch (GsonUtils.LlmOutputParseException e) {
             log.error("{}解析失败, content={}", name, content, e);
             throw new RuntimeException(name + "解析失败");
         }

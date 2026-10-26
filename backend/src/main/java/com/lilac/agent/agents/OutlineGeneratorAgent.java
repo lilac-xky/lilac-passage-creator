@@ -76,8 +76,8 @@ public class OutlineGeneratorAgent implements NodeAction {
         // 调用 LLM（流式输出）
         String content = callLlmWithStreaming(prompt, streamHandler);
         
-        // 解析结果
-        ArticleState.OutlineResult outlineResult = GsonUtils.fromJson(content, ArticleState.OutlineResult.class);
+        // 解析结果（容错：模型可能返回代码围栏或夹杂解释文字）
+        ArticleState.OutlineResult outlineResult = GsonUtils.fromLlmOutput(content, ArticleState.OutlineResult.class);
         log.info("OutlineGeneratorAgent 执行完成: 生成了 {} 个章节", outlineResult.getSections().size());
         return Map.of(OUTPUT_OUTLINE, outlineResult);
     }

@@ -52,8 +52,9 @@ public class TitleGeneratorAgent implements NodeAction {
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));
         String content = response.getResult().getOutput().getText();
         
-        // 解析结果
-        List<ArticleState.TitleOption> titleOptions = GsonUtils.fromJson(content, new TypeToken<List<ArticleState.TitleOption>>(){});
+        // 解析结果（容错：模型可能返回代码围栏或夹杂解释文字）
+        List<ArticleState.TitleOption> titleOptions =
+                GsonUtils.fromLlmOutput(content, new TypeToken<List<ArticleState.TitleOption>>(){});
         log.info("TitleGeneratorAgent 执行完成: 生成了 {} 个标题方案", titleOptions.size());
         return Map.of(OUTPUT_TITLE_OPTIONS, titleOptions);
     }

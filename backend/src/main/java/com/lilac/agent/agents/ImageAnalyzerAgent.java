@@ -76,8 +76,8 @@ public class ImageAnalyzerAgent implements NodeAction {
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));
         String responseContent = response.getResult().getOutput().getText();
 
-        // 解析结果
-        ArticleState.Agent4Result agent4Result = GsonUtils.fromJson(responseContent, ArticleState.Agent4Result.class);
+        // 解析结果（容错：模型可能返回代码围栏或夹杂解释文字）
+        ArticleState.Agent4Result agent4Result = GsonUtils.fromLlmOutput(responseContent, ArticleState.Agent4Result.class);
 
         // 验证并过滤配图需求
         List<ArticleState.ImageRequirement> validatedRequirements = validateAndFilterImageRequirements(
