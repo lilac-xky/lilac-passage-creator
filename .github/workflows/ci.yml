@@ -64,9 +64,15 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
-      # npm run build = 并行跑 type-check (vue-tsc) 和 build-only (vite build)
-      - name: Type check & build
+      # vite build 与 vue-tsc 分开跑，便于定位是哪一步挂了。
+      # 注意顺序：先 build 再 type-check —— 构建失败是"应用起不来"（阻塞），
+      # 类型检查失败是"代码质量"（也想修但不应掩盖构建问题）。
+      - name: Build
         working-directory: frontend
-        run: npm run build
+        run: npm run build-only
+
+      - name: Type check
+        working-directory: frontend
+        run: npm run type-check
