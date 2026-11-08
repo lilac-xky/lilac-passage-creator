@@ -22,6 +22,23 @@
             <!-- 主内容卡片 -->
             <div v-else-if="article" class="article-card">
 
+                <!-- 配图降级提示（步骤 E2） -->
+                <!-- 背景：实测有过 10 张配图 5 张降级（50%）的案例，
+                     但 status 仍是「已完成」，用户完全看不出来。
+                     这里显式提示，避免用户拿到占位图还以为是正常结果。 -->
+                <a-alert v-if="article.hasImageFallback" class="degrade-alert"
+                    :type="article.imageDegraded ? 'warning' : 'info'" show-icon
+                    :message="article.imageDegraded
+                        ? `本文配图降级较多：${article.imageTotal} 张中有 ${article.imageFallbackCount} 张使用了占位图`
+                        : `本文有 ${article.imageFallbackCount} 张配图使用了占位图`"
+                    :description="article.imageDegraded
+                        ? '部分图源（如 Pexels / AI 生图）调用失败，系统已自动用占位图兜底，建议重新生成以获取更贴合的配图。'
+                        : '个别图源调用失败，系统已用占位图兜底，不影响正文阅读。'">
+                    <template #action>
+                        <a-button size="small" type="link" @click="goBack">返回列表</a-button>
+                    </template>
+                </a-alert>
+
                 <!-- 文章头部 (居中) -->
                 <div class="article-header">
                     <h1 class="main-title">{{ article.mainTitle }}</h1>
@@ -320,6 +337,12 @@ onMounted(() => {
     border-radius: 8px;
     padding: 48px;
     box-shadow: var(--shadow-md);
+}
+
+/* 配图降级提示（步骤 E2） */
+.degrade-alert {
+    margin-bottom: 32px;
+    border-radius: 6px;
 }
 
 /* 文章头部居中 */

@@ -40,6 +40,15 @@ import static com.lilac.constant.UserConstant.VIP_ROLE;
 @Slf4j
 public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> implements ArticleService {
 
+    /**
+     * 配图降级率告警阈值（百分比）。
+     *
+     * <p>达到该比例即视为「严重降级」，前端应显式提示用户。
+     * 实测历史数据里出现过 10 张图降级 5 张（50%）的情况，
+     * 而 30% 这个阈值能把「个别图源偶发失败」与「图源整体不可用」区分开。
+     */
+    private static final int IMAGE_DEGRADE_WARN_PCT = 30;
+
     @Resource
     private QuotaService quotaService;
     @Resource
@@ -182,9 +191,54 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             }
         }
         article.setImages(GsonUtils.toJson(images));
+
+        // 统计配图降级情况（步骤 E1）
+        //
+        // 背景：实测发现 34 张配图中 5 张（14.7%）静默降级到 PICSUM 占位图，
+        // 而文章状态仍是「已完成」、errorMessage 为 NULL，用户在页面上
+        // 完全看不出异常。这里把降级数量落库，让问题可被查询和展示。
+        int imageTotal = images == null ? 0 : images.size();
+        int fallbackCount = 0;
+        if (images != null) {
+            for (ArticleState.ImageResult img : images) {
+                if (img != null && isFallbackMethod(img.getMethod())) {
+                    fallbackCount++;
+                }
+            }
+        }
+        article.setImageTotal(imageTotal);
+        article.setImageFallbackCount(fallbackCount);
+
+        // 降级严重程度判定（步骤 E2）
+        //
+        // 为什么不直接把 status 改成 PARTIAL：
+        // 前端有多处用 `status === '已完成'` 做分支判断
+        // （ArticleCreate.vue:720 的会话恢复、ArticleList.vue:134 的标签映射等），
+        // 新增状态值会让这些逻辑直接走错分支 —— 恢复会话时会把已完成的任务
+        // 当成"仍在生成"。所以状态语义保持不变，改用独立字段表达降级程度，
+        // 由前端按需展示提示，不影响既有流程。
+        int fallbackRatePct = imageTotal == 0 ? 0 : (fallbackCount * 100 / imageTotal);
+        article.setImageDegraded(fallbackCount > 0 && fallbackRatePct >= IMAGE_DEGRADE_WARN_PCT ? 1 : 0);
+
+        if (fallbackCount > 0) {
+            String level = fallbackRatePct >= IMAGE_DEGRADE_WARN_PCT ? "严重降级" : "轻微降级";
+            log.warn("文章配图存在降级({}), taskId={}, 总数={}, 降级数={}, 降级率={}%",
+                    level, taskId, imageTotal, fallbackCount, fallbackRatePct);
+        }
+
         article.setCompletedTime(LocalDateTime.now());
         this.updateById(article);
-        log.info("文章保存成功, taskId={}", taskId);
+        log.info("文章保存成功, taskId={}, 配图={}张(降级{}张)", taskId, imageTotal, fallbackCount);
+    }
+
+    /**
+     * 判断图片生成方式是否为降级兜底（PICSUM）。
+     *
+     * <p>大小写不敏感：历史数据里同时存在 {@code PICSUM} 和 {@code Picsum} 两种写法。
+     */
+    private boolean isFallbackMethod(String method) {
+        return method != null && ImageMethodEnum.getFallbackMethod().getValue()
+                .equalsIgnoreCase(method);
     }
 
     /**

@@ -118,6 +118,16 @@ declare namespace API {
     coverImage?: string;
     /** 图片 */
     images?: ImageResult[];
+    /** 配图总数 */
+    imageTotal?: number;
+    /** 其中降级到占位图的数量 */
+    imageFallbackCount?: number;
+    /** 是否存在配图降级 */
+    hasImageFallback?: boolean;
+    /** 配图降级率（百分比 0-100） */
+    imageFallbackRate?: number;
+    /** 是否严重降级（降级率 >= 30%） */
+    imageDegraded?: boolean;
     /** 状态 */
     status?: string;
     /** 错误信息 */

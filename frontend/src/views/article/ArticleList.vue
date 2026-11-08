@@ -65,6 +65,16 @@
                                 <span class="dot"></span>
                                 {{ getStatusText(record.status) }}
                             </div>
+                            <!-- 配图降级标记（步骤 E2）：
+                                 让用户在列表页就能看出哪些文章的配图有问题，
+                                 不用点进去才发现 -->
+                            <a-tooltip v-if="record.hasImageFallback"
+                                :title="`${record.imageFallbackCount}/${record.imageTotal} 张配图使用了占位图`">
+                                <div :class="['degrade-badge', record.imageDegraded ? 'severe' : 'minor']">
+                                    <WarningOutlined />
+                                    {{ record.imageDegraded ? '配图降级' : '部分占位' }}
+                                </div>
+                            </a-tooltip>
                         </template>
 
                         <!-- 创建时间 -->
@@ -101,7 +111,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { listArticle, getArticle, deleteArticle as deleteArticleApi } from '@/api/articleController'
 import dayjs from 'dayjs'
-import { SearchOutlined, PlusOutlined, EyeOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { SearchOutlined, PlusOutlined, EyeOutlined, DownloadOutlined, DeleteOutlined, WarningOutlined } from '@ant-design/icons-vue'
 
 const router = useRouter()
 
@@ -395,6 +405,28 @@ onMounted(() => {
     border-radius: 20px;
     font-size: 13px;
     font-weight: 500;
+}
+
+/* 配图降级标记（步骤 E2） */
+.degrade-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: help;
+}
+
+.degrade-badge.minor {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.degrade-badge.severe {
+    background: #fef3c7;
+    color: #b45309;
 }
 
 .status-badge .dot {

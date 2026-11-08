@@ -78,6 +78,38 @@ public class ArticleVO implements Serializable {
     private List<ArticleState.ImageResult> images;
 
     /**
+     * 配图总数（步骤 E2）
+     */
+    private Integer imageTotal;
+
+    /**
+     * 其中降级到兜底图源（PICSUM 占位图）的数量（步骤 E2）
+     *
+     * <p>实测有过 10 张图里 5 张降级的案例（50%），但文章状态仍显示「已完成」，
+     * 用户在页面上完全看不出来。暴露该字段后前端可以提示：
+     * 「本文 N 张配图使用了占位图」。
+     */
+    private Integer imageFallbackCount;
+
+    /**
+     * 是否存在配图降级（步骤 E2，便于前端直接判断，不用自己算）
+     */
+    private Boolean hasImageFallback;
+
+    /**
+     * 配图降级率（百分比，0~100，步骤 E2）
+     */
+    private Integer imageFallbackRate;
+
+    /**
+     * 是否为严重降级（降级率 >= 30%，步骤 E2）
+     *
+     * <p>前端可据此展示更醒目的提示，例如：
+     * 「本文 10 张配图中 5 张使用了占位图，建议重新生成」
+     */
+    private Boolean imageDegraded;
+
+    /**
      * 状态
      */
     private String status;
@@ -144,6 +176,17 @@ public class ArticleVO implements Serializable {
         articleVO.setImages(parseList(article.getImages(), new TypeToken<List<ArticleState.ImageResult>>() {}));
         articleVO.setEnabledImageMethods(parseList(article.getEnabledImageMethods(), new TypeToken<List<String>>() {}));
         articleVO.setTitleOptions(parseList(article.getTitleOptions(), new TypeToken<List<ArticleState.TitleOption>>() {}));
+
+        // 降级标识（步骤 E2）：让前端不用自己判断
+        // 历史数据可能为 null，统一兜底为 0/false
+        int total = article.getImageTotal() == null ? 0 : article.getImageTotal();
+        int fallback = article.getImageFallbackCount() == null ? 0 : article.getImageFallbackCount();
+        articleVO.setImageTotal(total);
+        articleVO.setImageFallbackCount(fallback);
+        articleVO.setHasImageFallback(fallback > 0);
+        articleVO.setImageFallbackRate(total == 0 ? 0 : (fallback * 100 / total));
+        articleVO.setImageDegraded(article.getImageDegraded() != null && article.getImageDegraded() == 1);
+
         return articleVO;
      }
 

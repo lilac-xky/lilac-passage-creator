@@ -83,6 +83,40 @@ public class Article implements Serializable {
     private String images;
 
     /**
+     * 配图总数（步骤 E1）
+     *
+     * <p>冗余存储便于聚合查询，避免每次都解析 JSON。
+     */
+    private Integer imageTotal;
+
+    /**
+     * 其中降级到兜底图源（PICSUM）的数量（步骤 E1）
+     *
+     * <p><b>为什么要单独记这个</b>：实测 34 张配图中 5 张降级（14.7%），
+     * 但文章 status 仍是「已完成」、errorMessage 为 NULL，
+     * 用户在页面上看不出任何异常 —— 这是**静默降级**。
+     * 记录该字段后可：
+     * <ul>
+     *   <li>在前端提示「本文 N 张配图使用了占位图」</li>
+     *   <li>按降级率排序定位问题图源</li>
+     *   <li>降级率超阈值时把状态标为 PARTIAL 而非 COMPLETED</li>
+     * </ul>
+     */
+    private Integer imageFallbackCount;
+
+    /**
+     * 配图降级是否达到告警级别（步骤 E2）：0-正常/轻微 1-严重降级
+     *
+     * <p>判定标准：降级率 >= 30%。
+     *
+     * <p><b>为什么用独立字段而不是把 status 改成 PARTIAL</b>：
+     * 前端多处用 {@code status === '已完成'} 做分支（会话恢复、标签映射），
+     * 新增状态值会让这些逻辑走错分支。保持 status 语义不变、
+     * 用本字段表达降级程度，是兼容性更好的选择。
+     */
+    private Integer imageDegraded;
+
+    /**
      * 状态：PENDING/PROCESSING/COMPLETED/FAILED
      */
     private String status;
