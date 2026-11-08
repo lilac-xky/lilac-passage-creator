@@ -57,9 +57,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String createArticleTaskWithQuotaCheck(String topic, String style, List<String> enabledImageMethods, User loginUser) {
-        // 在同一事务中：先扣配额，再创建任务
-        quotaService.hasQuota(loginUser);
-        // 如果任务创建失败，配额会自动回滚
+        // 扣配额（内部已含原子校验：UPDATE ... WHERE quota > 0，影响行数为 0 则抛异常）。
+        // 原代码此处还有一行 `quotaService.hasQuota(loginUser);` 但**丢弃了返回值**，
+        // 属于无效调用：真正的前置检查在 checkAndConsumeQuota 内部已完成，
+        // 那一行只白白多查一次数据库。已移除（步骤 C6）。
+        //
+        // 注意：配额扣减与任务创建在同一事务中，
+        // 任务创建失败会整体回滚，不会出现"扣了配额但没有任务"。
         quotaService.checkAndConsumeQuota(loginUser);
         return createArticleTask(topic, style, enabledImageMethods, loginUser);
     }
