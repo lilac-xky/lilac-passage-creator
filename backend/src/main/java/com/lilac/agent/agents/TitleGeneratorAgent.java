@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.google.gson.reflect.TypeToken;
+import com.lilac.agent.context.TokenUsageContext;
 import com.lilac.constant.PromptConstant;
 import com.lilac.domain.dto.article.ArticleState;
 import com.lilac.enums.ArticleStyleEnum;
@@ -70,6 +71,8 @@ public class TitleGeneratorAgent implements NodeAction {
         
         // 调用 LLM
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));
+        // 采集 token 用量（步骤 E1）
+        TokenUsageContext.record(response);
         String content = response.getResult().getOutput().getText();
         
         // 解析结果（容错：模型可能返回代码围栏或夹杂解释文字）

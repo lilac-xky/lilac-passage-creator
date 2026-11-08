@@ -2,6 +2,7 @@ package com.lilac.service;
 
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.google.gson.reflect.TypeToken;
+import com.lilac.agent.context.TokenUsageContext;
 import com.lilac.annotation.AgentExecution;
 import com.lilac.constant.PromptConstant;
 import com.lilac.domain.dto.article.ArticleState;
@@ -353,6 +354,8 @@ public class ArticleAgentService {
      */
     private String callLlm(String prompt) {
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));
+        // 采集 token 用量（步骤 E1），由 AgentExecutionAspect 读取后写入 agent_log
+        TokenUsageContext.record(response);
         return response.getResult().getOutput().getText();
     }
 
@@ -365,10 +368,15 @@ public class ArticleAgentService {
 
         streamResponse
                 .doOnNext(response -> {
+                    // 采集 token 用量（步骤 E1）。流式场景多数厂商只在最后
+                    // 一帧返回 usage，TokenUsageContext.record 内部取较大值累加。
+                    TokenUsageContext.record(response);
                     String chunk = response.getResult().getOutput().getText();
                     if (chunk != null && !chunk.isEmpty()) {
                         contentBuilder.append(chunk);
-                        streamHandler.accept(messageType.getStreamingPrefix() + chunk);
+                        if (streamHandler != null) {
+                            streamHandler.accept(messageType.getStreamingPrefix() + chunk);
+                        }
                     }
                 })
                 .doOnError(error -> log.error("LLM 流式调用失败, messageType={}", messageType, error))

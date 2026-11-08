@@ -8,6 +8,7 @@ import com.lilac.domain.dto.article.ArticleState;
 import com.lilac.enums.ImageMethodEnum;
 import com.lilac.enums.SseMessageTypeEnum;
 import com.lilac.agent.context.StreamHandlerContext;
+import com.lilac.agent.context.TokenUsageContext;
 import com.lilac.service.PromptTemplateService;
 import com.lilac.utils.GsonUtils;
 import jakarta.annotation.Resource;
@@ -88,6 +89,8 @@ public class ImageAnalyzerAgent implements NodeAction {
         
         // 调用 LLM
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));
+        // 采集 token 用量（步骤 E1）
+        TokenUsageContext.record(response);
         String responseContent = response.getResult().getOutput().getText();
 
         // 解析结果（容错：模型可能返回代码围栏或夹杂解释文字）

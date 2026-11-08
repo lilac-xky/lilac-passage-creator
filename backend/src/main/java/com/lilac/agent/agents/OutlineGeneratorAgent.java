@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.lilac.agent.context.StreamHandlerContext;
+import com.lilac.agent.context.TokenUsageContext;
 import com.lilac.constant.PromptConstant;
 import com.lilac.domain.dto.article.ArticleState;
 import com.lilac.enums.SseMessageTypeEnum;
@@ -105,6 +106,8 @@ public class OutlineGeneratorAgent implements NodeAction {
         
         streamResponse
                 .doOnNext(response -> {
+                    // 采集 token 用量（步骤 E1）
+                    TokenUsageContext.record(response);
                     String chunk = response.getResult().getOutput().getText();
                     if (chunk != null && !chunk.isEmpty()) {
                         contentBuilder.append(chunk);
