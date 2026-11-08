@@ -1,5 +1,6 @@
 package com.lilac.aop;
 
+import com.lilac.agent.context.TokenUsageContext;
 import com.lilac.annotation.AgentExecution;
 import com.lilac.domain.dto.article.ArticleState;
 import com.lilac.domain.entity.AgentLog;
@@ -34,12 +35,16 @@ public class AgentExecutionAspect {
     public Object aroundAgentExecution(ProceedingJoinPoint pjp, AgentExecution agentExecution) throws Throwable {
         long startTime = System.currentTimeMillis();
         LocalDateTime startDateTime = LocalDateTime.now();
-        
+
+        // 开始 token 采集（步骤 E1）。Agent 内部拿到 ChatResponse 后会调用
+        // TokenUsageContext.record(...)，这里在 finally 里取出来写进日志。
+        TokenUsageContext.begin();
+
         // 提取 taskId 和输入数据
         String taskId = extractTaskId(pjp);
         String inputData = extractInputData(pjp);
         String prompt = extractPrompt(pjp);
-        
+
         // 创建日志对象
         AgentLog agentLog = AgentLog.builder()
                 .taskId(taskId)
@@ -54,7 +59,7 @@ public class AgentExecutionAspect {
         try {
             // 执行目标方法
             result = pjp.proceed();
-            
+
             // 记录成功状态
             agentLog.setStatus("SUCCESS");
             agentLog.setEndTime(LocalDateTime.now());
@@ -70,6 +75,23 @@ public class AgentExecutionAspect {
             log.error("智能体执行失败: {}, taskId={}, 错误={}", agentExecution.value(), taskId, e.getMessage(), e);
             throw e;
         } finally {
+            // 采集 token 用量（步骤 E1）。无论成功失败都记录 ——
+            // 失败的调用同样消耗了 token，这部分成本必须算进去。
+            try {
+                TokenUsageContext.Accumulator acc = TokenUsageContext.get();
+                if (acc != null && !acc.isEmpty()) {
+                    agentLog.setPromptTokens(acc.getPromptTokens());
+                    agentLog.setCompletionTokens(acc.getCompletionTokens());
+                    agentLog.setTotalTokens(acc.getTotalTokens());
+                    agentLog.setModel(acc.getModel());
+                }
+            } catch (Exception ex) {
+                log.warn("采集 token 用量失败, agent={}", agentExecution.value(), ex);
+            } finally {
+                // 必须清理，否则线程池复用时会把上一个任务的 token 算到下一个
+                TokenUsageContext.clear();
+            }
+
             // 异步保存日志
             agentLogService.saveLogAsync(agentLog);
         }

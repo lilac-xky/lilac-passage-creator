@@ -43,6 +43,11 @@ public class AgentLog implements Serializable {
     private String agentName;
 
     /**
+     * 使用的模型名（步骤 E1 补充，用于成本归因）
+     */
+    private String model;
+
+    /**
      * 开始时间
      */
     private LocalDateTime startTime;
@@ -58,6 +63,21 @@ public class AgentLog implements Serializable {
     private Integer durationMs;
 
     /**
+     * 输入 token 数（步骤 E1 补充，用于成本统计）
+     */
+    private Integer promptTokens;
+
+    /**
+     * 输出 token 数（步骤 E1 补充）
+     */
+    private Integer completionTokens;
+
+    /**
+     * 总 token 数（步骤 E1 补充，便于聚合与成本估算）
+     */
+    private Integer totalTokens;
+
+    /**
      * 状态：SUCCESS/FAILED
      */
     private String status;
@@ -71,6 +91,16 @@ public class AgentLog implements Serializable {
      * 使用的Prompt
      */
     private String prompt;
+
+    /**
+     * 使用的提示词模板 ID（步骤 D9 预留，E1 补齐写入）
+     */
+    private Long templateId;
+
+    /**
+     * 使用的提示词模板版本号（步骤 D9 预留，E1 补齐写入）
+     */
+    private Integer templateVersion;
 
     /**
      * 输入数据（JSON格式）
