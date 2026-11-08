@@ -118,6 +118,20 @@ public class Article implements Serializable {
     private String phase;
 
     /**
+     * 配额是否已退还（步骤 C4）。
+     *
+     * <p>0/null = 未退还，1 = 已退还。
+     *
+     * <p>作用：作为「退还配额」的<b>幂等标志位</b>。
+     * 任务失败时会调用 {@code QuotaService.refundQuotaOnce}，
+     * 该方法先 {@code UPDATE article SET quotaRefunded = 1 WHERE taskId = ? AND quotaRefunded = 0}，
+     * 只有影响行数为 1（即抢到标志位）才真正退还配额。
+     * 这样即使失败回调被重复触发（重试、多实例、用户重复操作），
+     * 也只会退还一次。
+     */
+    private Integer quotaRefunded;
+
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

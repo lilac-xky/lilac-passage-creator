@@ -36,6 +36,53 @@ public class ArticleAsyncService {
     private ArticleAgentOrchestrator articleAgentOrchestrator;
     @Resource
     private AgentConfig agentConfig;
+    @Resource
+    private QuotaService quotaService;
+
+    /**
+     * 任务失败时的统一收尾（步骤 C4）。
+     *
+     * <p>做三件事：
+     * <ol>
+     *   <li>把任务状态置为 FAILED 并记录错误信息</li>
+     *   <li><b>退还创建任务时扣掉的配额</b>（幂等，重复调用不会多退）</li>
+     *   <li>推送 SSE 错误消息并关闭连接</li>
+     * </ol>
+     *
+     * <p>改造前三处 catch 都只做了 1 和 3，用户白扣了一次配额。
+     *
+     * <p>注意：退还配额失败不应影响失败状态与 SSE 推送，
+     * 所以单独 try-catch，只记日志。
+     */
+    private void handlePhaseFailure(String taskId, String phaseName, Exception e) {
+        log.error("{}异步任务失败, taskId={}", phaseName, taskId, e);
+
+        // ① 标记失败
+        try {
+            articleService.updateArticleStatus(taskId, ArticleStatusEnum.FAILED, e.getMessage());
+        } catch (Exception ex) {
+            log.error("更新失败状态时出错, taskId={}", taskId, ex);
+        }
+
+        // ② 退还配额（幂等）
+        try {
+            boolean refunded = quotaService.refundQuotaOnce(taskId);
+            if (refunded) {
+                log.info("{}失败，已退还配额, taskId={}", phaseName, taskId);
+            }
+        } catch (Exception ex) {
+            // 退还失败不能掩盖原始错误，也不能阻断后续 SSE 通知
+            log.error("{}失败后退还配额时出错, taskId={}", phaseName, taskId, ex);
+        }
+
+        // ③ 通知前端
+        try {
+            sendSseMessage(taskId, SseMessageTypeEnum.ERROR, Map.of("message", e.getMessage()));
+            sseEmitterManager.complete(taskId);
+        } catch (Exception ex) {
+            log.error("推送失败消息时出错, taskId={}", taskId, ex);
+        }
+    }
 
     /**
      * 阶段1：异步生成标题方案
@@ -82,13 +129,7 @@ public class ArticleAsyncService {
             sendSseMessage(taskId, SseMessageTypeEnum.TITLES_GENERATED, data);
             log.info("阶段1异步任务完成, taskId={}", taskId);
         } catch (Exception e) {
-            log.error("阶段1异步任务失败, taskId={}", taskId, e);
-            // 更新状态为失败
-            articleService.updateArticleStatus(taskId, ArticleStatusEnum.FAILED, e.getMessage());
-            // 推送错误消息
-            sendSseMessage(taskId, SseMessageTypeEnum.ERROR, Map.of("message", e.getMessage()));
-            // 完成 SSE 连接
-            sseEmitterManager.complete(taskId);
+            handlePhaseFailure(taskId, "阶段1", e);
         }
     }
 
@@ -145,10 +186,7 @@ public class ArticleAsyncService {
             sendSseMessage(taskId, SseMessageTypeEnum.OUTLINE_GENERATED, data);
             log.info("阶段2异步任务完成, taskId={}", taskId);
         } catch (Exception e) {
-            log.error("阶段2异步任务失败, taskId={}", taskId, e);
-            articleService.updateArticleStatus(taskId, ArticleStatusEnum.FAILED, e.getMessage());
-            sendSseMessage(taskId, SseMessageTypeEnum.ERROR, Map.of("message", e.getMessage()));
-            sseEmitterManager.complete(taskId);
+            handlePhaseFailure(taskId, "阶段2", e);
         }
     }
 
@@ -217,10 +255,7 @@ public class ArticleAsyncService {
             sseEmitterManager.complete(taskId);
             log.info("阶段3异步任务完成, taskId={}", taskId);
         } catch (Exception e) {
-            log.error("阶段3异步任务失败, taskId={}", taskId, e);
-            articleService.updateArticleStatus(taskId, ArticleStatusEnum.FAILED, e.getMessage());
-            sendSseMessage(taskId, SseMessageTypeEnum.ERROR, Map.of("message", e.getMessage()));
-            sseEmitterManager.complete(taskId);
+            handlePhaseFailure(taskId, "阶段3", e);
         }
     }
 

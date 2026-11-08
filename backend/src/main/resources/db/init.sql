@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS `article`
     `errorMessage`        text COMMENT '错误信息',
     `createTime`          datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `completedTime`       datetime              DEFAULT NULL COMMENT '完成时间',
+    `quotaRefunded`       tinyint      NOT NULL DEFAULT '0' COMMENT '配额是否已退还：0-未退还 1-已退还（幂等标志位）',
     `updateTime`          datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `isDelete`            tinyint      NOT NULL DEFAULT '0' COMMENT '是否删除',
     PRIMARY KEY (`id`),
