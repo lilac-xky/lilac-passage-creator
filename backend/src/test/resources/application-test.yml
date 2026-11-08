@@ -1,0 +1,136 @@
+# =============================================================
+# 集成测试配置（步骤 G1）
+# =============================================================
+# 目标：让 `mvn test` 在没有 MySQL / Redis / 外部 API 的机器上也能跑起来，
+#       从而在 CI 里验证：
+#         1. init.sql 能成功建表（立刻发现它和实体不同步）
+#         2. Mapper / Service 的 SQL 正确
+#         3. Spring 上下文能装配
+#
+# 使用方式：@SpringBootTest + @ActiveProfiles("test")
+#
+# 注意：本文件**不使用真实外部服务**，第三方 API Key 全部用占位符。
+# =============================================================
+
+spring:
+  # ---------------------------------------------------------------
+  # 数据源：H2 内存库，MySQL 兼容模式
+  # ---------------------------------------------------------------
+  # MODE=MySQL           让 H2 接受 MySQL 方言（如 backtick 引号、ON UPDATE CURRENT_TIMESTAMP）
+  # DATABASE_TO_LOWER    表名统一小写，与 MySQL 在 Windows 上的行为一致
+  # CASE_INSENSITIVE_IDENTIFIERS 配合驼峰列名（taskId）的引用
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:lilac_test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    hikari:
+      # 内存库，2 个连接足够
+      maximum-pool-size: 2
+
+  # ---------------------------------------------------------------
+  # 建表：使用测试专用 schema（由 init.sql 派生）
+  # ---------------------------------------------------------------
+  # 为什么不直接加载 init.sql：实测它有 5 条语句 H2 无法执行
+  # （CREATE DATABASE / USE / 索引名全局冲突），详见
+  # docs/changes/19-test-profile.md。
+  #
+  # schema-test.sql 与 init.sql 的差异仅限这三类，
+  # 且有一条 TestSchemaConsistencyTest 会比对两者的表/列清单，
+  # 防止长期漂移。
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-test.sql
+      continue-on-error: false
+      encoding: UTF-8
+
+  # ---------------------------------------------------------------
+  # Session：测试期用内存，不连 Redis
+  # ---------------------------------------------------------------
+  session:
+    store-type: none
+    timeout: 1800s
+
+  # ---------------------------------------------------------------
+  # Redis：不自动配置（避免启动时尝试连接）
+  # ---------------------------------------------------------------
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ""
+
+  # ---------------------------------------------------------------
+  # Spring AI / DashScope：占位 key，只装配 Bean 不实际调用
+  # ---------------------------------------------------------------
+  ai:
+    dashscope:
+      api-key: test-placeholder-key-not-real
+      chat:
+        options:
+          model: glm-5.2
+
+# ---------------------------------------------------------------
+# MyBatis-Flex
+# ---------------------------------------------------------------
+mybatis-flex:
+  configuration:
+    map-underscore-to-camel-case: false
+    # 测试期关闭 SQL 日志，保持输出干净
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+# ---------------------------------------------------------------
+# 服务端
+# ---------------------------------------------------------------
+server:
+  port: 0                    # 随机端口，避免与本地开发冲突
+  servlet:
+    context-path: /api
+
+# ---------------------------------------------------------------
+# 业务配置（全部使用假值，测试期不会真正调用这些外部服务）
+# ---------------------------------------------------------------
+cos:
+  client:
+    host: https://test-bucket.cos.ap-chengdu.myqcloud.com
+    secretId: test-secret-id
+    secretKey: test-secret-key
+    region: ap-chengdu
+    bucket: test-bucket
+
+pexels:
+  api-key: test-pexels-key
+
+nano-banana:
+  api-key: test-gemini-key
+  model: gemini-3-pro-image-preview
+
+stripe:
+  api-key: sk_test_placeholder
+  webhook-secret: whsec_placeholder
+  success-url: http://localhost:5173/vip?success=true
+  cancel-url: http://localhost:5173/vip?cancelled=true
+
+article:
+  agent:
+    orchestrator:
+      enabled: true
+    max-iterations: 10
+  image:
+    group-timeout-seconds: 30
+
+cors:
+  allowed-origins: http://localhost:5173
+  allow-credentials: true
+
+# ---------------------------------------------------------------
+# 测试期日志：只保留 WARN，避免刷屏
+# ---------------------------------------------------------------
+logging:
+  level:
+    root: WARN
+    com.lilac: INFO
+    org.springframework.test: WARN
+    # 建表脚本执行信息保留，便于排查
+    org.springframework.jdbc.datasource.init: INFO

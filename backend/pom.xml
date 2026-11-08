@@ -45,6 +45,27 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
+            H2：集成测试用内存数据库（步骤 G1）。
+
+            目的：让 CI 能在没有 MySQL 的环境下：
+              1. 跑 init.sql 建表 —— 能立刻发现 init.sql 与实际实体不同步
+              2. 跑真实的 Mapper / Service 集成测试
+
+            为什么用 H2 而不是 Testcontainers：
+              - 本地仓库里两者都有，但 Testcontainers 需要 Docker
+              - CI（ubuntu-latest）虽然能用 Docker，但启动 MySQL 容器要 20~30s
+              - 本项目 SQL 全是标准语法（无 MySQL 特有函数），H2 MySQL 兼容模式够用
+              - 速度是主要考量：H2 启动 < 1s
+
+            版本由 spring-boot-dependencies 管理，不写死。
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>

@@ -1,30 +1,56 @@
 package com.lilac;
 
-import org.junit.jupiter.api.Disabled;
+import com.lilac.mapper.ArticleMapper;
+import com.lilac.mapper.PromptTemplateMapper;
+import com.lilac.mapper.UserMapper;
+import com.lilac.service.PromptTemplateService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Spring 上下文加载测试。
+ * Spring 上下文加载测试（步骤 G1 启用）。
  *
- * <p>⚠️ 暂时禁用，原因：
+ * <p><b>历史</b>：本测试在改造初期被 {@code @Disabled}，原因是
+ * {@code application-dev.yml} 被 gitignore 且从未入库，CI 检出后不存在，
+ * datasource / redis / 第三方 key 全缺，上下文必然启动失败。
+ *
+ * <p><b>现在</b>：新增了 {@code application-test.yml} + H2 内存库 +
+ * {@code schema-test.sql}，不再依赖任何外部服务，因此可以真正启用。
+ *
+ * <p>这个测试的价值不只是"上下文能起来"，它还间接验证了：
  * <ul>
- *   <li>{@code application-dev.yml} 被 .gitignore 排除，CI 检出后不存在，
- *       datasource / redis / 第三方 API Key 全部缺失，上下文必然启动失败；</li>
- *   <li>即使本地存在该文件，也会真实连接 MySQL、Redis 并初始化 Stripe / COS 客户端，
- *       不适合作为 CI 的自动化测试。</li>
+ *   <li><b>建表脚本与实体一致</b> —— schema 加载失败会直接启动失败</li>
+ *   <li>所有 Mapper 的 SQL 映射正确</li>
+ *   <li>所有 {@code @PostConstruct} 能在无外部依赖下完成</li>
  * </ul>
- *
- * <p>要在 CI 里跑通它，需要补一套 test profile + 嵌入式依赖（H2 / embedded-redis），
- * 属于独立的改造步骤，不在此处一并处理。
- *
- * <p>当前 CI 覆盖的是不依赖 Spring 容器的纯逻辑单测，见 {@code com.lilac.unit} 包。
  */
-@Disabled("需要真实 MySQL/Redis 与第三方密钥，且 application-dev.yml 不入库；待补 test profile 后启用")
 @SpringBootTest
+@ActiveProfiles("test")
 class BackendApplicationTests {
 
+    @Autowired
+    private ArticleMapper articleMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private PromptTemplateMapper promptTemplateMapper;
+
+    @Autowired
+    private PromptTemplateService promptTemplateService;
+
     @Test
+    @DisplayName("Spring 上下文能加载（含 H2 建表）")
     void contextLoads() {
+        assertNotNull(articleMapper, "ArticleMapper 应已装配");
+        assertNotNull(userMapper, "UserMapper 应已装配");
+        assertNotNull(promptTemplateMapper, "PromptTemplateMapper 应已装配");
+        assertNotNull(promptTemplateService, "PromptTemplateService 应已装配");
     }
 }

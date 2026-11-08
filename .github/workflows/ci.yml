@@ -31,11 +31,27 @@ jobs:
       # -ntp: 不打印下载进度，日志干净
       # -Djdk.attach.allowAttachSelf=true: Mockito 内联 mock maker 需要自附加 JVM，
       #   JDK 17 默认禁止，不加会直接报 "Could not initialize plugin: MockMaker"
+      #
+      # 注意：不需要 MySQL / Redis / 任何外部 API Key。
+      # 集成测试走 application-test.yml 的 H2 内存库 + schema-test.sql，
+      # 上下文能在无外部依赖的情况下完整启动。
       - name: Build & Test
         working-directory: backend
         run: >
           mvn -B -ntp -Djdk.attach.allowAttachSelf=true
           clean verify
+
+      # 单独报告「建表脚本漂移」——这是不用迁移框架时最大的风险点。
+      # schema-test.sql 与 init.sql 不同步时，SchemaDriftTest 会失败，
+      # 这条步骤把失败原因提炼出来，方便快速定位。
+      - name: Report schema drift (if any)
+        if: failure()
+        working-directory: backend
+        run: |
+          if [ -f target/surefire-reports/com.lilac.integration.SchemaDriftTest.txt ]; then
+            echo "::error::建表脚本已漂移，请同步 init.sql 与 schema-test.sql"
+            cat target/surefire-reports/com.lilac.integration.SchemaDriftTest.txt
+          fi
 
       # 测试报告即使失败也上传，方便排查
       - name: Upload test reports

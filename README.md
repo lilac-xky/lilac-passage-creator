@@ -7,7 +7,7 @@
   <img alt="Spring Boot" src="https://img.shields.io/badge/Spring%20Boot-3.5.14-brightgreen">
   <img alt="Spring AI Alibaba" src="https://img.shields.io/badge/Spring%20AI%20Alibaba-1.1.0.0--RC2-orange">
   <img alt="Vue" src="https://img.shields.io/badge/Vue-3.5-42b883">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-109%20passed-success">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-123%20passed-success">
 </p>
 
 ---
@@ -283,7 +283,7 @@ mvn test
 ```
 
 ```
-Tests run: 109, Failures: 0, Errors: 0, Skipped: 1
+Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 | 测试类 | 用例数 | 覆盖 |
@@ -299,7 +299,13 @@ Tests run: 109, Failures: 0, Errors: 0, Skipped: 1
 | `PromptMigrationRegressionTest` | 11 | 迁库前后 prompt 逐字节一致 |
 | `TokenUsageContextTest` | 7 | token 采集（含流式取较大值） |
 | `ArticleVOImageDegradedTest` | 7 | 配图降级可见化 |
-| `BackendApplicationTests` | 1 | ⏸️ `@Disabled`，需 test profile |
+| `BackendApplicationTests` | 1 | Spring 上下文加载（H2，无需外部服务） |
+| `SchemaEntityConsistencyTest` | 6 | 实体 ↔ 建表脚本一致性 |
+| `SchemaDriftTest` | 5 | `init.sql` ↔ `schema-test.sql` 防漂移 |
+
+> **集成测试不需要 MySQL / Redis / 任何 API Key** ——
+> 走 `application-test.yml` 的 H2 内存库 + `schema-test.sql`，
+> 上下文约 7.5 秒启动。`mvn test` 在任何机器上都能跑。
 
 > **注意**：Mockito 在 JDK 17 上需要 `-Djdk.attach.allowAttachSelf=true`，
 > 已配置在 `pom.xml` 的 surefire 中，本地与 CI 行为一致。
@@ -329,7 +335,8 @@ lilac-passage-creator/
 │       │           ├── init.sql    # 全量建表
 │       │           └── upgrade/    # 增量脚本 002~006
 │       └── test/java/com/lilac/
-│           └── unit/               # 109 个测试
+│           └── unit/               # 单测（112 个）
+│           └── integration/        # 集成测试（11 个，H2）
 ├── frontend/
 │   └── src/
 │       ├── views/                  # 页面
@@ -366,7 +373,7 @@ lilac-passage-creator/
 | 4 | `templateId/templateVersion` 已建列但无代码写入，效果回收未闭环 | P1 |
 | 5 | 配图降级只做提示，未提供「单独重新生成配图」能力 | P2 |
 | 6 | SSE `emitterMap` 为单机内存，多实例推不到 | P2 |
-| 7 | `contextLoads` 缺 test profile，暂 `@Disabled` | P2 |
+| 7 | 集成测试未覆盖 Service 业务逻辑（配额退还幂等性等） | P2 |
 | 8 | LLM 解析失败无自动重试（仅有提取层容错） | P2 |
 | 9 | 后端未对存储内容做净化（仅前端渲染时过滤） | P2 |
 | 10 | 旧实现 `ArticleAgentService` 与 orchestrator 并存，应择一保留 | P2 |
@@ -382,7 +389,8 @@ lilac-passage-creator/
 
 - **2026.06 ~ 08**：完成主体功能开发（标题/大纲/正文/配图全链路、支付、管理后台）
 - **2026.10 ~ 11**：系统性工程化重构
-  - 补充建表脚本与 CI（此前无任何自动化测试，测试数 19 → 109）
+  - 补充建表脚本与 CI（此前无任何自动化测试，测试数 19 → 123）
+  - 补 test profile：H2 集成测试，CI 无需 MySQL/Redis 即可验证建表脚本
   - 修复存储型 XSS、CORS 全放开两项安全问题
   - 新增 LLM 输出 JSON 容错层，解析成功率 17% → 83%
   - 配图并行生成改用专用线程池（脱离 `ForkJoinPool.commonPool`）
