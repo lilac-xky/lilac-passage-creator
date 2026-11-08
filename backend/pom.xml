@@ -136,6 +136,16 @@
             <artifactId>stripe-java</artifactId>
             <version>31.2.0</version>
         </dependency>
+
+        <!--
+            Caffeine：提示词模板本地缓存（步骤 D11）。
+            Spring Boot 的 spring-boot-starter-cache 会自动识别 Caffeine，
+            这里直接用 caffeine 原生的 Cache API，不额外引入 starter。
+        -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

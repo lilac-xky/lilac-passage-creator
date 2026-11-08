@@ -7,7 +7,9 @@ import com.google.gson.reflect.TypeToken;
 import com.lilac.constant.PromptConstant;
 import com.lilac.domain.dto.article.ArticleState;
 import com.lilac.enums.ArticleStyleEnum;
+import com.lilac.service.PromptTemplateService;
 import com.lilac.utils.GsonUtils;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -29,6 +31,13 @@ public class TitleGeneratorAgent implements NodeAction {
 
     private final DashScopeChatModel chatModel;
 
+    /**
+     * 提示词模板服务（步骤 D10）。
+     * 从 DB 读模板，DB 不可用时自动回退到 PromptConstant。
+     */
+    @Resource
+    private PromptTemplateService promptTemplateService;
+
     public static final String INPUT_TOPIC = "topic";
     public static final String INPUT_STYLE = "style";
     public static final String OUTPUT_TITLE_OPTIONS = "titleOptions";
@@ -45,8 +54,12 @@ public class TitleGeneratorAgent implements NodeAction {
         
         log.info("TitleGeneratorAgent 开始执行: topic={}, style={}", topic, style);
         
-        // 构建 prompt
-        String prompt = PromptConstant.AGENT1_TITLE_PROMPT.replace("{topic}", topic) + getStylePrompt(style);
+        // 构建 prompt —— 模板从数据库读取（步骤 D10），DB 不可用时回退 PromptConstant
+        String titleTemplate = promptTemplateService.render(
+                "AGENT1_TITLE_PROMPT",
+                PromptConstant.AGENT1_TITLE_PROMPT,
+                Map.of("topic", topic == null ? "" : topic));
+        String prompt = titleTemplate + getStylePrompt(style);
         
         // 调用 LLM
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));
@@ -73,10 +86,10 @@ public class TitleGeneratorAgent implements NodeAction {
         }
         
         return switch (styleEnum) {
-            case TECH -> PromptConstant.STYLE_TECH_PROMPT;
-            case EMOTIONAL -> PromptConstant.STYLE_EMOTIONAL_PROMPT;
-            case EDUCATIONAL -> PromptConstant.STYLE_EDUCATIONAL_PROMPT;
-            case HUMOROUS -> PromptConstant.STYLE_HUMOROUS_PROMPT;
+            case TECH -> promptTemplateService.getContent("STYLE_TECH_PROMPT", PromptConstant.STYLE_TECH_PROMPT);
+            case EMOTIONAL -> promptTemplateService.getContent("STYLE_EMOTIONAL_PROMPT", PromptConstant.STYLE_EMOTIONAL_PROMPT);
+            case EDUCATIONAL -> promptTemplateService.getContent("STYLE_EDUCATIONAL_PROMPT", PromptConstant.STYLE_EDUCATIONAL_PROMPT);
+            case HUMOROUS -> promptTemplateService.getContent("STYLE_HUMOROUS_PROMPT", PromptConstant.STYLE_HUMOROUS_PROMPT);
         };
     }
 }
