@@ -30,6 +30,8 @@ public class SvgDiagramService implements ImageSearchService {
     private SvgDiagramConfig svgDiagramConfig;
     @Resource
     private DashScopeChatModel chatModel;
+    @Resource
+    private com.lilac.service.PromptTemplateService promptTemplateService;
 
     @Override
     public String searchImage(String keywords) {
@@ -83,8 +85,11 @@ public class SvgDiagramService implements ImageSearchService {
      * 调用 LLM 生成 SVG 代码
      */
     private String callLlmToGenerateSvg(String requirement) {
-        String prompt = PromptConstant.SVG_DIAGRAM_GENERATION_PROMPT
-                .replace("{requirement}", requirement);
+        // 模板从 DB 读取（步骤 D10 推广），DB 不可用时回退 PromptConstant
+        String prompt = promptTemplateService.render(
+                "SVG_DIAGRAM_GENERATION_PROMPT",
+                PromptConstant.SVG_DIAGRAM_GENERATION_PROMPT,
+                java.util.Map.of("requirement", requirement));
 
         log.info("开始调用 LLM 生成 SVG 概念示意图");
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));

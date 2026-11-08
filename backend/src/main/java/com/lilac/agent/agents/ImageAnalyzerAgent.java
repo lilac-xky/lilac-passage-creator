@@ -8,7 +8,9 @@ import com.lilac.domain.dto.article.ArticleState;
 import com.lilac.enums.ImageMethodEnum;
 import com.lilac.enums.SseMessageTypeEnum;
 import com.lilac.agent.context.StreamHandlerContext;
+import com.lilac.service.PromptTemplateService;
 import com.lilac.utils.GsonUtils;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -31,6 +33,9 @@ import java.util.function.Consumer;
 public class ImageAnalyzerAgent implements NodeAction {
 
     private final DashScopeChatModel chatModel;
+
+    @Resource
+    private PromptTemplateService promptTemplateService;
 
     public static final String INPUT_MAIN_TITLE = "mainTitle";
     public static final String INPUT_CONTENT = "content";
@@ -63,14 +68,23 @@ public class ImageAnalyzerAgent implements NodeAction {
         // 构建可用配图方式说明
         String availableMethods = buildAvailableMethodsDescription(enabledMethods);
         // 构建各配图方式的详细使用指南（只包含允许的方式）
+        //
+        // 注：改造前这里还有一处
+        //   .replace("{methodUsageGuide}", methodUsageGuide)
+        // 但 AGENT4 模板正文里并没有 {methodUsageGuide} 占位符，
+        // 该替换属于无效遗留代码（已逐字核对模板确认）。
+        // methodUsageGuide 仍保留构建，供未来模板扩展使用。
         String methodUsageGuide = buildMethodUsageGuide(enabledMethods);
-        
-        // 构建 prompt
-        String prompt = PromptConstant.AGENT4_IMAGE_REQUIREMENTS_PROMPT
-                .replace("{mainTitle}", mainTitle)
-                .replace("{content}", content)
-                .replace("{availableMethods}", availableMethods)
-                .replace("{methodUsageGuide}", methodUsageGuide);
+
+        // 构建 prompt（模板从 DB 读取，DB 不可用时回退 PromptConstant）
+        String prompt = promptTemplateService.render(
+                "AGENT4_IMAGE_REQUIREMENTS_PROMPT",
+                PromptConstant.AGENT4_IMAGE_REQUIREMENTS_PROMPT,
+                Map.of(
+                        "mainTitle", mainTitle,
+                        "content", content,
+                        "availableMethods", availableMethods == null ? "" : availableMethods,
+                        "methodUsageGuide", methodUsageGuide == null ? "" : methodUsageGuide));
         
         // 调用 LLM
         ChatResponse response = chatModel.call(new Prompt(new UserMessage(prompt)));

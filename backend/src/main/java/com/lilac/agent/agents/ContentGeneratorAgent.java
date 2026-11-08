@@ -6,9 +6,11 @@ import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.lilac.agent.context.StreamHandlerContext;
 import com.lilac.constant.PromptConstant;
 import com.lilac.domain.dto.article.ArticleState;
-import com.lilac.enums.ArticleStyleEnum;
 import com.lilac.enums.SseMessageTypeEnum;
+import com.lilac.service.PromptTemplateService;
+import com.lilac.service.StylePromptService;
 import com.lilac.utils.GsonUtils;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -30,6 +32,12 @@ import java.util.function.Consumer;
 public class ContentGeneratorAgent implements NodeAction {
 
     private final DashScopeChatModel chatModel;
+
+    @Resource
+    private PromptTemplateService promptTemplateService;
+
+    @Resource
+    private StylePromptService stylePromptService;
 
     public static final String INPUT_MAIN_TITLE = "mainTitle";
     public static final String INPUT_SUB_TITLE = "subTitle";
@@ -63,13 +71,16 @@ public class ContentGeneratorAgent implements NodeAction {
         
         log.info("ContentGeneratorAgent 开始执行: mainTitle={}", mainTitle);
         
-        // 构建 prompt
+        // 构建 prompt（模板从 DB 读取，DB 不可用时回退 PromptConstant）
         String outlineText = GsonUtils.toJson(outline.getSections());
-        String prompt = PromptConstant.AGENT3_CONTENT_PROMPT
-                .replace("{mainTitle}", mainTitle)
-                .replace("{subTitle}", subTitle)
-                .replace("{outline}", outlineText)
-                + getStylePrompt(style);
+        String prompt = promptTemplateService.render(
+                "AGENT3_CONTENT_PROMPT",
+                PromptConstant.AGENT3_CONTENT_PROMPT,
+                Map.of(
+                        "mainTitle", mainTitle,
+                        "subTitle", subTitle == null ? "" : subTitle,
+                        "outline", outlineText))
+                + stylePromptService.getStylePrompt(style);
         
         // 获取流式处理器
         Consumer<String> streamHandler = StreamHandlerContext.get();
@@ -104,26 +115,5 @@ public class ContentGeneratorAgent implements NodeAction {
                 .doOnError(error -> log.error("ContentGeneratorAgent 流式调用失败", error))
                 .blockLast();
         return contentBuilder.toString();
-    }
-
-    /**
-     * 根据风格获取对应的 Prompt 附加内容
-     */
-    private String getStylePrompt(String style) {
-        if (style == null || style.isEmpty()) {
-            return "";
-        }
-        
-        ArticleStyleEnum styleEnum = ArticleStyleEnum.getEnumByValue(style);
-        if (styleEnum == null) {
-            return "";
-        }
-        
-        return switch (styleEnum) {
-            case TECH -> PromptConstant.STYLE_TECH_PROMPT;
-            case EMOTIONAL -> PromptConstant.STYLE_EMOTIONAL_PROMPT;
-            case EDUCATIONAL -> PromptConstant.STYLE_EDUCATIONAL_PROMPT;
-            case HUMOROUS -> PromptConstant.STYLE_HUMOROUS_PROMPT;
-        };
     }
 }

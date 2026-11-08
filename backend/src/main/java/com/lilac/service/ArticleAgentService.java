@@ -41,6 +41,10 @@ public class ArticleAgentService {
     private CosService cosService;
     @Resource
     private ImageServiceStrategy imageServiceStrategy;
+    @Resource
+    private PromptTemplateService promptTemplateService;
+    @Resource
+    private StylePromptService stylePromptService;
 
     /**
      * 阶段1：生成标题方案（3-5个）
@@ -123,7 +127,11 @@ public class ArticleAgentService {
      */
     @AgentExecution(value = "agent1_generate_titles", description = "生成标题方案")
     public void agent1GenerateTitleOptions(ArticleState state) {
-        String prompt = PromptConstant.AGENT1_TITLE_PROMPT.replace("{topic}", state.getTopic()) + getStylePrompt(state.getStyle());
+        String prompt = promptTemplateService.render(
+                "AGENT1_TITLE_PROMPT",
+                PromptConstant.AGENT1_TITLE_PROMPT,
+                java.util.Map.of("topic", state.getTopic() == null ? "" : state.getTopic()))
+                + stylePromptService.getStylePrompt(state.getStyle());
         String content = callLlm(prompt);
         List<ArticleState.TitleOption> titleOptions = parseJsonListResponse(
                 content,
@@ -142,14 +150,20 @@ public class ArticleAgentService {
         // 构建 prompt，根据是否有用户补充描述插入对应部分
         String descriptionSection = "";
         if (state.getUserDescription() != null && !state.getUserDescription().trim().isEmpty()) {
-            descriptionSection = PromptConstant.AGENT2_DESCRIPTION_SECTION.replace("{userDescription}", state.getUserDescription());
+            descriptionSection = promptTemplateService.render(
+                    "AGENT2_DESCRIPTION_SECTION",
+                    PromptConstant.AGENT2_DESCRIPTION_SECTION,
+                    java.util.Map.of("userDescription", state.getUserDescription()));
         }
 
-        String prompt = PromptConstant.AGENT2_OUTLINE_PROMPT
-                .replace("{mainTitle}", state.getTitle().getMainTitle())
-                .replace("{subTitle}", state.getTitle().getSubTitle())
-                .replace("{descriptionSection}", descriptionSection)
-                + getStylePrompt(state.getStyle());
+        String prompt = promptTemplateService.render(
+                "AGENT2_OUTLINE_PROMPT",
+                PromptConstant.AGENT2_OUTLINE_PROMPT,
+                java.util.Map.of(
+                        "mainTitle", state.getTitle().getMainTitle(),
+                        "subTitle", state.getTitle().getSubTitle() == null ? "" : state.getTitle().getSubTitle(),
+                        "descriptionSection", descriptionSection))
+                + stylePromptService.getStylePrompt(state.getStyle());
 
         String content = callLlmWithStreaming(prompt, streamHandler, SseMessageTypeEnum.AGENT2_STREAMING);
         ArticleState.OutlineResult outlineResult = parseJsonResponse(content, ArticleState.OutlineResult.class, "大纲");
@@ -163,11 +177,14 @@ public class ArticleAgentService {
     @AgentExecution(value = "agent3_generate_content", description = "生成文章正文")
     public void agent3GenerateContent(ArticleState state, Consumer<String> streamHandler) {
         String outlineText = GsonUtils.toJson(state.getOutline().getSections());
-        String prompt = PromptConstant.AGENT3_CONTENT_PROMPT
-                .replace("{mainTitle}", state.getTitle().getMainTitle())
-                .replace("{subTitle}", state.getTitle().getSubTitle())
-                .replace("{outline}", outlineText)
-                + getStylePrompt(state.getStyle());
+        String prompt = promptTemplateService.render(
+                "AGENT3_CONTENT_PROMPT",
+                PromptConstant.AGENT3_CONTENT_PROMPT,
+                java.util.Map.of(
+                        "mainTitle", state.getTitle().getMainTitle(),
+                        "subTitle", state.getTitle().getSubTitle() == null ? "" : state.getTitle().getSubTitle(),
+                        "outline", outlineText))
+                + stylePromptService.getStylePrompt(state.getStyle());
         String content = callLlmWithStreaming(prompt, streamHandler, SseMessageTypeEnum.AGENT3_STREAMING);
         state.setContent(content);
         log.info("智能体3：正文生成成功, length={}", content.length());
@@ -180,10 +197,13 @@ public class ArticleAgentService {
     public void agent4AnalyzeImageRequirements(ArticleState state) {
         // 构建可用配图方式说明
         String availableMethods = buildAvailableMethodsDescription(state.getEnabledImageMethods());
-        String prompt = PromptConstant.AGENT4_IMAGE_REQUIREMENTS_PROMPT
-                .replace("{mainTitle}", state.getTitle().getMainTitle())
-                .replace("{content}", state.getContent())
-                .replace("{availableMethods}", availableMethods);
+        String prompt = promptTemplateService.render(
+                "AGENT4_IMAGE_REQUIREMENTS_PROMPT",
+                PromptConstant.AGENT4_IMAGE_REQUIREMENTS_PROMPT,
+                java.util.Map.of(
+                        "mainTitle", state.getTitle().getMainTitle(),
+                        "content", state.getContent() == null ? "" : state.getContent(),
+                        "availableMethods", availableMethods == null ? "" : availableMethods));
         String content = callLlm(prompt);
         ArticleState.Agent4Result agent4Result = parseJsonResponse(content, ArticleState.Agent4Result.class, "配图需求");
 
@@ -287,11 +307,14 @@ public class ArticleAgentService {
     public List<ArticleState.OutlineSection> aiModifyOutline(String mainTitle, String subTitle,
                                                              List<ArticleState.OutlineSection> currentOutline, String modifySuggestion) {
         String currentOutlineJson = GsonUtils.toJson(currentOutline);
-        String prompt = PromptConstant.AI_MODIFY_OUTLINE_PROMPT
-                .replace("{mainTitle}", mainTitle)
-                .replace("{subTitle}", subTitle)
-                .replace("{currentOutline}", currentOutlineJson)
-                .replace("{modifySuggestion}", modifySuggestion);
+        String prompt = promptTemplateService.render(
+                "AI_MODIFY_OUTLINE_PROMPT",
+                PromptConstant.AI_MODIFY_OUTLINE_PROMPT,
+                java.util.Map.of(
+                        "mainTitle", mainTitle == null ? "" : mainTitle,
+                        "subTitle", subTitle == null ? "" : subTitle,
+                        "currentOutline", currentOutlineJson == null ? "" : currentOutlineJson,
+                        "modifySuggestion", modifySuggestion == null ? "" : modifySuggestion));
 
         String content = callLlm(prompt);
         ArticleState.OutlineResult outlineResult = parseJsonResponse(content, ArticleState.OutlineResult.class, "修改后的大纲");
@@ -417,25 +440,6 @@ public class ArticleAgentService {
                 break;
             }
         }
-    }
-
-    /**
-     * 根据风格获取对应的 Prompt 附加内容
-     */
-    private String getStylePrompt(String style) {
-        if (style == null || style.isEmpty()) {
-            return "";
-        }
-        ArticleStyleEnum styleEnum = ArticleStyleEnum.getEnumByValue(style);
-        if (styleEnum == null) {
-            return "";
-        }
-        return switch (styleEnum) {
-            case TECH -> PromptConstant.STYLE_TECH_PROMPT;
-            case EMOTIONAL -> PromptConstant.STYLE_EMOTIONAL_PROMPT;
-            case EDUCATIONAL -> PromptConstant.STYLE_EDUCATIONAL_PROMPT;
-            case HUMOROUS -> PromptConstant.STYLE_HUMOROUS_PROMPT;
-        };
     }
 
     /**
