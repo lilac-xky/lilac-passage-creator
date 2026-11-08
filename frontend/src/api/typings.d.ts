@@ -21,18 +21,30 @@ declare namespace API {
     taskId?: string;
     /** 智能体名称 */
     agentName?: string;
+    /** 使用的模型名（步骤 E1 补充，用于成本归因） */
+    model?: string;
     /** 开始时间 */
     startTime?: string;
     /** 结束时间 */
     endTime?: string;
     /** 耗时（毫秒） */
     durationMs?: number;
+    /** 输入 token 数（步骤 E1 补充，用于成本统计） */
+    promptTokens?: number;
+    /** 输出 token 数（步骤 E1 补充） */
+    completionTokens?: number;
+    /** 总 token 数（步骤 E1 补充，便于聚合与成本估算） */
+    totalTokens?: number;
     /** 状态：SUCCESS/FAILED */
     status?: string;
     /** 错误信息 */
     errorMessage?: string;
     /** 使用的Prompt */
     prompt?: string;
+    /** 使用的提示词模板 ID（步骤 D9 预留，E1 补齐写入） */
+    templateId?: number;
+    /** 使用的提示词模板版本号（步骤 D9 预留，E1 补齐写入） */
+    templateVersion?: number;
     /** 输入数据（JSON格式） */
     inputData?: string;
     /** 输出数据（JSON格式） */
@@ -118,15 +130,22 @@ declare namespace API {
     coverImage?: string;
     /** 图片 */
     images?: ImageResult[];
-    /** 配图总数 */
+    /** 配图总数（步骤 E2） */
     imageTotal?: number;
-    /** 其中降级到占位图的数量 */
+    /** 其中降级到兜底图源（PICSUM 占位图）的数量（步骤 E2）
+
+<p>实测有过 10 张图里 5 张降级的案例（50%），但文章状态仍显示「已完成」，
+用户在页面上完全看不出来。暴露该字段后前端可以提示：
+「本文 N 张配图使用了占位图」。 */
     imageFallbackCount?: number;
-    /** 是否存在配图降级 */
+    /** 是否存在配图降级（步骤 E2，便于前端直接判断，不用自己算） */
     hasImageFallback?: boolean;
-    /** 配图降级率（百分比 0-100） */
+    /** 配图降级率（百分比，0~100，步骤 E2） */
     imageFallbackRate?: number;
-    /** 是否严重降级（降级率 >= 30%） */
+    /** 是否为严重降级（降级率 >= 30%，步骤 E2）
+
+<p>前端可据此展示更醒目的提示，例如：
+「本文 10 张配图中 5 张使用了占位图，建议重新生成」 */
     imageDegraded?: boolean;
     /** 状态 */
     status?: string;

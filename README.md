@@ -7,7 +7,7 @@
   <img alt="Spring Boot" src="https://img.shields.io/badge/Spring%20Boot-3.5.14-brightgreen">
   <img alt="Spring AI Alibaba" src="https://img.shields.io/badge/Spring%20AI%20Alibaba-1.1.0.0--RC2-orange">
   <img alt="Vue" src="https://img.shields.io/badge/Vue-3.5-42b883">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-58%20passed-success">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-109%20passed-success">
 </p>
 
 ---
@@ -188,11 +188,26 @@ JsonParser.parseString("[1,2,3,]")   // → [1, 2, 3, null]
 ### 1. 初始化数据库
 
 ```bash
+# 第一步：建库 + 建表（5 张表 + 2 个视图）
 mysql -uroot -p < backend/src/main/resources/db/init.sql
+
+# 第二步：灌入 11 个提示词模板（可选，不跑也能启动）
+mysql -uroot -p lilac-passage-creator \
+  -e "source backend/src/main/resources/db/upgrade/004-prompt-seed.sql"
 ```
 
-脚本是幂等的（全部 `IF NOT EXISTS`），可重复执行。
-共 4 张表：`user` / `article` / `payment_record` / `agent_log`。
+脚本幂等（`IF NOT EXISTS` / `CREATE OR REPLACE VIEW`），可重复执行。
+
+**5 张表**：`user` / `article` / `payment_record` / `agent_log` / `prompt_template`
+**2 个视图**：`v_prompt_effect`（模板效果聚合）/ `v_image_degradation`（配图降级排序）
+
+> 💡 **不跑第二步也能启动**：`PromptTemplateService` 查不到模板时会自动回退到
+> `PromptConstant` 里的硬编码兜底。这是刻意的降级设计。
+
+**已有旧库**：按序号执行 `db/upgrade/` 下的增量脚本（V2 → V6）。
+
+> ⚠️ **本项目不使用 Flyway**，没有自动迁移。所有 SQL 手动执行。
+> 因此 `init.sql` 与 `upgrade/` 会双份维护，改结构时两处都要同步。
 
 > ⚠️ 所有实体标注 `@Table(camelToUnderline = false)`，
 > 配合 `map-underscore-to-camel-case: false`，
@@ -268,7 +283,7 @@ mvn test
 ```
 
 ```
-Tests run: 58, Failures: 0, Errors: 0, Skipped: 1
+Tests run: 109, Failures: 0, Errors: 0, Skipped: 1
 ```
 
 | 测试类 | 用例数 | 覆盖 |
@@ -276,8 +291,14 @@ Tests run: 58, Failures: 0, Errors: 0, Skipped: 1
 | `EnumTest` | 8 | 图源/风格枚举查找与分类 |
 | `ThrowUtilsTest` | 4 | 参数校验统一入口 |
 | `GsonUtilsTest` | 10 | JSON 序列化 + 严格/容错双模式 |
-| `CorsConfigTest` | 8 | CORS 白名单（含 3 条通配符回归断言） |
 | `LlmJsonExtractorTest` | 27 | LLM 输出 6 大类形态修复 |
+| `CorsConfigTest` | 8 | CORS 白名单（含 3 条通配符回归断言） |
+| `ImageExecutorTest` | 6 | 配图线程池（含"不是 commonPool"回归） |
+| `StripeWebhookControllerTest` | 7 | Webhook 状态码分类（4 条回归断言） |
+| `PromptRendererTest` | 13 | 占位符渲染与缺失变量告警 |
+| `PromptMigrationRegressionTest` | 11 | 迁库前后 prompt 逐字节一致 |
+| `TokenUsageContextTest` | 7 | token 采集（含流式取较大值） |
+| `ArticleVOImageDegradedTest` | 7 | 配图降级可见化 |
 | `BackendApplicationTests` | 1 | ⏸️ `@Disabled`，需 test profile |
 
 > **注意**：Mockito 在 JDK 17 上需要 `-Djdk.attach.allowAttachSelf=true`，
@@ -295,18 +316,20 @@ lilac-passage-creator/
 │       │   ├── java/com/lilac/
 │       │   │   ├── agent/          # StateGraph 编排
 │       │   │   │   ├── agents/     # 5 个 NodeAction
-│       │   │   │   ├── parallel/   # 并行生图
-│       │   │   │   ├── context/    # ThreadLocal 流式上下文
+│       │   │   │   ├── parallel/   # 并行生图（专用线程池）
+│       │   │   │   ├── context/    # ThreadLocal：流式 handler / token 采集
 │       │   │   │   └── tools/      # @Tool 封装
 │       │   │   ├── strategy/       # 7 种图源策略
-│       │   │   ├── service/        # 业务逻辑
+│       │   │   ├── service/        # 业务逻辑 + PromptTemplateService
 │       │   │   ├── controller/     # 22 个接口
 │       │   │   ├── config/         # CORS / Async / Stripe / COS...
 │       │   │   └── utils/          # GsonUtils / LlmJsonExtractor
 │       │   └── resources/
-│       │       └── db/init.sql     # 建表脚本
+│       │       └── db/
+│       │           ├── init.sql    # 全量建表
+│       │           └── upgrade/    # 增量脚本 002~006
 │       └── test/java/com/lilac/
-│           └── unit/               # 58 个测试
+│           └── unit/               # 109 个测试
 ├── frontend/
 │   └── src/
 │       ├── views/                  # 页面
@@ -339,12 +362,17 @@ lilac-passage-creator/
 |---|---|---|
 | 1 | 密码用 MD5 + 固定盐 `"lilac"`，应迁 BCrypt | P1 |
 | 2 | 密钥明文在 `application-dev.yml`，应迁环境变量 | P1 |
-| 3 | 并行生图用 `ForkJoinPool.commonPool` 承载阻塞 IO | P1 |
-| 4 | Stripe Webhook 异常一律返回 500，会导致无限重试 | P1 |
-| 5 | SSE `emitterMap` 为单机内存，多实例推不到 | P2 |
-| 6 | `contextLoads` 缺 test profile，暂 `@Disabled` | P2 |
-| 7 | LLM 解析失败无自动重试（仅有提取层容错） | P2 |
-| 8 | 后端未对存储内容做净化（仅前端渲染时过滤） | P2 |
+| 3 | `abWeight` 字段未实现真正的 A/B 分流（仅按版本号取最高） | P1 |
+| 4 | `templateId/templateVersion` 已建列但无代码写入，效果回收未闭环 | P1 |
+| 5 | 配图降级只做提示，未提供「单独重新生成配图」能力 | P2 |
+| 6 | SSE `emitterMap` 为单机内存，多实例推不到 | P2 |
+| 7 | `contextLoads` 缺 test profile，暂 `@Disabled` | P2 |
+| 8 | LLM 解析失败无自动重试（仅有提取层容错） | P2 |
+| 9 | 后端未对存储内容做净化（仅前端渲染时过滤） | P2 |
+| 10 | 旧实现 `ArticleAgentService` 与 orchestrator 并存，应择一保留 | P2 |
+
+> ✅ 已解决：~~并行生图占 `ForkJoinPool.commonPool`~~（改用专用池）、
+> ~~Stripe Webhook 异常一律 500~~（按性质分类）、~~任务失败不退配额~~（幂等退还）
 
 > 详细改造记录见 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)
 
@@ -353,11 +381,16 @@ lilac-passage-creator/
 ## 项目时间线说明
 
 - **2026.06 ~ 08**：完成主体功能开发（标题/大纲/正文/配图全链路、支付、管理后台）
-- **2026.10 起**：系统性工程化重构
-  - 补充建表脚本与 CI（此前无任何自动化测试）
+- **2026.10 ~ 11**：系统性工程化重构
+  - 补充建表脚本与 CI（此前无任何自动化测试，测试数 19 → 109）
   - 修复存储型 XSS、CORS 全放开两项安全问题
   - 新增 LLM 输出 JSON 容错层，解析成功率 17% → 83%
-  - 收敛重复代码（3 处 `marked()` 调用 → 1 处）
+  - 配图并行生成改用专用线程池（脱离 `ForkJoinPool.commonPool`）
+  - Stripe Webhook 按异常性质分类状态码，避免确定性失败被无限重试
+  - 任务失败幂等退还配额（CAS 标志位）
+  - 提示词迁移至数据库并支持版本管理，11 个模板全部接入
+  - 补全 token 与配图降级埋点，发现并修复「14.7% 配图静默降级」问题
+  - 收敛重复代码（3 处 `marked()` 调用 → 1 处、4 处 `getStylePrompt` → 1 处）
 
 > 半年后回头重构自己的项目、系统性地发现并修复问题，
 > 本身就是一次有价值的实践。
